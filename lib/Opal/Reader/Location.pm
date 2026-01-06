@@ -2,7 +2,7 @@
 use v5.42;
 use experimental qw[ class ];
 
-class Opal::Parser::Location {
+class Opal::Reader::Location {
     field $start  :param :reader;
     field $end    :param :reader;
 

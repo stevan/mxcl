@@ -4,7 +4,7 @@ use experimental qw[ class ];
 
 use importer 'Carp' => qw[ confess ];
 
-class Opal::Parser::Tools::CharBuffer {
+class Opal::Reader::Tools::CharBuffer {
     use constant MAX_BUFFER_SIZE => 512;
 
     field $handle :param;

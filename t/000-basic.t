@@ -6,16 +6,17 @@ use experimental qw[ class switch ];
 use Test::More;
 use Data::Dumper qw[ Dumper ];
 
-use Opal::Parser;
+use Opal::Reader;
 
-my $parser = Opal::Parser->new;
-
-my @exprs = $parser->parse(q[
+my $parser = Opal::Reader->new(
+    source => q[
 
     (10 (20 30) 40 (50))
     (1 2 3)
 
 ]);
+
+my @exprs = $parser->parse;
 
 say Dumper( [ map $_->DUMP, @exprs ] );
 

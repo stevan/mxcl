@@ -4,7 +4,7 @@ use experimental qw[ class ];
 
 use importer 'Carp' => qw[ confess ];
 
-class Opal::Parser::Compound {
+class Opal::Reader::Compound {
     field $begin_at :param :reader;
     field $end_at          :reader;
     field @elements;

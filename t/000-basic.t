@@ -16,7 +16,7 @@ my $parser = Opal::Reader->new(
 
 ]);
 
-my @exprs = $parser->parse;
+my $expr = $parser->parse;
 
-say Dumper( [ map $_->DUMP, @exprs ] );
+say Dumper( $expr->DUMP );
 

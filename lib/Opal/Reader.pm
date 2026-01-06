@@ -6,7 +6,6 @@ use importer 'Carp' => qw[ confess ];
 
 use IO::Scalar;
 
-use Opal::Reader::Location;
 use Opal::Reader::Token;
 use Opal::Reader::Compound;
 use Opal::Reader::Tools::CharBuffer;
@@ -32,18 +31,18 @@ class Opal::Reader {
             my $expr = $self->parse_expression;
             push @exprs => $expr;
         }
-        return @exprs;
+        return Opal::Reader::Compound->new(
+            items => \@exprs,
+            start => 0,
+            end   => $source->current_position
+        );
     }
 
     method parse_expression {
         if ( $source->discard_whitespace_and_peek eq '(' ) {
             my $start = $source->current_position;
             $source->skip(1);
-            return $self->parse_list(
-                Opal::Reader::Compound->start(
-                    Opal::Reader::Location->at( $start )
-                )
-            );
+            return $self->parse_list( Opal::Reader::Compound->new( start => $start ) );
         } else {
             my $token = $self->parse_token;
             return $token;
@@ -55,12 +54,10 @@ class Opal::Reader {
         if ( !$next || $next eq ')' ) {
             my $end = $source->current_position;
             $source->skip(1);
-            $list->finish( Opal::Reader::Location->at( $end ) );
-            return $list;
+            return $list->finish( $end );
         } else {
             my $expr = $self->parse_expression( $source );
-            $list->add_element( $expr );
-            return $self->parse_list( $list );
+            return $self->parse_list( $list->add_items( $expr ) );
         }
     }
 
@@ -74,11 +71,9 @@ class Opal::Reader {
         }
 
         return Opal::Reader::Token->new(
-            src => $string,
-            loc => Opal::Reader::Location->new(
-                start  => $start,
-                end    => $source->current_position
-            )
+            source => $string,
+            start  => $start,
+            end    => $source->current_position
         );
     }
 }

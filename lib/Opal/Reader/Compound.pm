@@ -5,29 +5,19 @@ use experimental qw[ class ];
 use importer 'Carp' => qw[ confess ];
 
 class Opal::Reader::Compound {
-    field $begin_at :param :reader;
-    field $end_at          :reader;
-    field @elements;
+    field $items :param :reader = [];
+    field $start :param :reader = -1;
+    field $end   :param :reader = -1;
 
-    method add_element ($e) {
-        confess "Cannot add elements after a Compound is closed"
-            if defined $end_at;
-        push @elements => $e;
-        $self;
-    }
+    method add_items (@e) { push @$items => @e; $self }
 
-    sub start ($class, $loc) { $class->new( begin_at => $loc ) }
-
-    method finish ($loc) {
-        $end_at = $loc;
-        $self;
-    }
+    method finish ($pos) { $end = $pos; $self }
 
     method DUMP {
         return +{
-            elements => [ map $_->DUMP, @elements ],
-            begin_at => $begin_at->DUMP,
-            end_at   => $end_at->DUMP,
+            items => [ map $_->DUMP, @$items ],
+            start => $start,
+            end   => $end,
         }
     }
 }

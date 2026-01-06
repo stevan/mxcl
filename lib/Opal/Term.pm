@@ -4,9 +4,7 @@ use experimental qw[ class ];
 
 # ------------------------------------------------------------------------------
 
-class Opal::Term {
-
-}
+class Opal::Term {}
 
 # ------------------------------------------------------------------------------
 
@@ -114,8 +112,8 @@ class Opal::Term::FExpr :isa(Opal::Term::Operative) {
 
 class Opal::Term::Token :isa(Opal::Term) {
     field $source :param :reader;
-    field $start  :param :reader;
-    field $end    :param :reader;
+    field $start  :param :reader = -1;
+    field $end    :param :reader = -1;
 
     method is_synthetic { $start == -1 && $end == -1 }
 
@@ -163,6 +161,7 @@ class Opal::Term::Environment :isa(Opal::Term::Hash) {
 
     method derive { __CLASS__->new( parent => $self ) }
 }
+
 
 
 

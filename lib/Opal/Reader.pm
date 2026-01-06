@@ -7,7 +7,7 @@ use importer 'Carp' => qw[ confess ];
 use IO::Scalar;
 
 use Opal::Term;
-use Opal::Reader::Tools::CharBuffer;
+use Opal::Tools::CharBuffer;
 
 class Opal::Reader {
     field $buffer :param :reader;
@@ -17,11 +17,11 @@ class Opal::Reader {
         $buffer = IO::Scalar->new( \(my $src = "${buffer}") )
             unless blessed $buffer;
 
-        $buffer = Opal::Reader::Tools::CharBuffer->new( handle => $buffer )
+        $buffer = Opal::Tools::CharBuffer->new( handle => $buffer )
             if $buffer isa IO::Handle;
 
         confess "Expected either a string, an IO::Handler or a Opal::Reader::Tools::Charbuffer, not $buffer"
-            unless $buffer isa Opal::Reader::Tools::CharBuffer;
+            unless $buffer isa Opal::Tools::CharBuffer;
     }
 
     method parse {

@@ -51,9 +51,9 @@ class Opal::Term::Nil  :isa(Opal::Term::Atom) {}
 class Opal::Term::List :isa(Opal::Term) {
     field $items :param :reader = +[];
 
-    method length { Opal::Term::Num->new( value => scalar @$items ) }
+    method length { scalar @$items }
 
-    method at ($idx) { $items->[ $idx->value ] // Opal::Term::Nil->new }
+    method at ($idx) { $items->[ $idx->value ] }
 
     method first { $items->[0] }
     method rest {
@@ -69,12 +69,12 @@ class Opal::Term::List :isa(Opal::Term) {
 class Opal::Term::Hash :isa(Opal::Term) {
     field $entries :param :reader = +{};
 
-    method has    ($key)         { Opal::Term::Bool->new( value => exists $entries->{ $key->ident } ) }
+    method has    ($key)         { exists $entries->{ $key->ident } }
     method get    ($key)         { $entries->{ $key->ident } }
     method set    ($key, $value) { $entries->{ $key->ident } = $value }
     method delete ($key)         { delete $entries->{ $key->ident } }
 
-    method keys   { Opal::Term::List->new( items => [ map { Key->new( ident => $_ ) } keys   %$entries ] ) }
+    method keys   { Opal::Term::List->new( items => [ map { Key->new( ident => $_ ) } keys %$entries ] ) }
     method values { Opal::Term::List->new( items => [ values %$entries ] ) }
 }
 
@@ -156,11 +156,72 @@ class Opal::Term::Exception :isa(Opal::Term) {
 class Opal::Term::Environment :isa(Opal::Term::Hash) {
     field $parent :param :reader = undef;
 
-    method is_root    { Opal::Term::Bool->new( value => not defined $parent ) }
-    method has_parent { Opal::Term::Bool->new( value =>     defined $parent ) }
+    method is_root    { not defined $parent }
+    method has_parent {     defined $parent }
 
     method derive { __CLASS__->new( parent => $self ) }
 }
+
+# ------------------------------------------------------------------------------
+# Kontinuations
+# ------------------------------------------------------------------------------
+
+=pod
+
+export type HostKontinue = {
+    op     : 'HOST',
+    stack  : Term[],
+    env    : Environment,
+    action : string,
+    args   : Term[],
+};
+
+export type ThrowKontinue = {
+    op        : 'THROW',
+    stack     : Term[],
+    env       : Environment,
+    exception : Exception
+};
+
+export type CatchKontinue = {
+    op        : 'CATCH',
+    stack     : Term[],
+    env       : Environment,
+    handler   : Applicative
+};
+
+export type Kontinue =
+    | HostKontinue
+    | ThrowKontinue
+    | CatchKontinue
+    | { op : 'IF/ELSE', stack : Term[], env : Environment, cond : Term, ifTrue : Term, ifFalse : Term }
+    | { op : 'DEFINE', stack : Term[], env : Environment, name  : Sym }
+    | { op : 'RETURN', stack : Term[], env : Environment, value : Term }
+    | { op : 'EVAL/EXPR',      stack : Term[], env : Environment, expr : Term }
+    | { op : 'EVAL/TOS',       stack : Term[], env : Environment }
+    | { op : 'EVAL/CONS',      stack : Term[], env : Environment, cons : Cons }
+    | { op : 'EVAL/CONS/REST', stack : Term[], env : Environment, rest : Term }
+    | { op : 'APPLY/EXPR',        stack : Term[], env : Environment, args : Term }
+    | { op : 'APPLY/OPERATIVE',   stack : Term[], env : Environment, call : Operative, args : Term }
+    | { op : 'APPLY/APPLICATIVE', stack : Term[], env : Environment, call : Applicative }
+
+=cut
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

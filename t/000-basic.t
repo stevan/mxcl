@@ -5,18 +5,17 @@ use experimental qw[ class switch ];
 
 use Test::More;
 use Data::Dumper qw[ Dumper ];
+use Carp         qw[ confess ];
 
 use Opal::Reader;
 
 my $parser = Opal::Reader->new(
-    source => q[
+    buffer => q[
 
-    (10 (20 30) 40 (50))
     (1 2 3)
 
 ]);
 
-my $expr = $parser->parse;
+my $exprs = $parser->parse;
 
-say Dumper( $expr->DUMP );
-
+say $exprs->[0]->to_string;

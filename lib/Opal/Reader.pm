@@ -6,43 +6,39 @@ use importer 'Carp' => qw[ confess ];
 
 use IO::Scalar;
 
-use Opal::Reader::Token;
-use Opal::Reader::Compound;
+use Opal::Term;
 use Opal::Reader::Tools::CharBuffer;
 
 class Opal::Reader {
-    field $source :param :reader;
+    field $buffer :param :reader;
 
     ADJUST {
         # coerce the input ...
-        $source = IO::Scalar->new( \(my $src = "${source}") )
-            unless blessed $source;
+        $buffer = IO::Scalar->new( \(my $src = "${buffer}") )
+            unless blessed $buffer;
 
-        $source = Opal::Reader::Tools::CharBuffer->new( handle => $source )
-            if $source isa IO::Handle;
+        $buffer = Opal::Reader::Tools::CharBuffer->new( handle => $buffer )
+            if $buffer isa IO::Handle;
 
-        confess "Expected either a string, an IO::Handler or a Opal::Reader::Tools::Charbuffer, not $source"
-            unless $source isa Opal::Reader::Tools::CharBuffer;
+        confess "Expected either a string, an IO::Handler or a Opal::Reader::Tools::Charbuffer, not $buffer"
+            unless $buffer isa Opal::Reader::Tools::CharBuffer;
     }
 
     method parse {
         my @exprs;
-        while ( defined $source->discard_whitespace_and_peek ) {
+        while ( defined $buffer->discard_whitespace_and_peek ) {
             my $expr = $self->parse_expression;
             push @exprs => $expr;
         }
-        return Opal::Reader::Compound->new(
-            items => \@exprs,
-            start => 0,
-            end   => $source->current_position
-        );
+
+        return \@exprs;
     }
 
     method parse_expression {
-        if ( $source->discard_whitespace_and_peek eq '(' ) {
-            my $start = $source->current_position;
-            $source->skip(1);
-            return $self->parse_list( Opal::Reader::Compound->new( start => $start ) );
+        if ( $buffer->discard_whitespace_and_peek eq '(' ) {
+            my $start = $buffer->current_position;
+            $buffer->skip(1);
+            return $self->parse_list( $self->create_compound( $start ) );
         } else {
             my $token = $self->parse_token;
             return $token;
@@ -50,30 +46,38 @@ class Opal::Reader {
     }
 
     method parse_list ( $list ) {
-        my $next = $source->discard_whitespace_and_peek;
+        my $next = $buffer->discard_whitespace_and_peek;
         if ( !$next || $next eq ')' ) {
-            my $end = $source->current_position;
-            $source->skip(1);
-            return $list->finish( $end );
+            my $end = $buffer->current_position;
+            $buffer->skip(1);
+            return $list->finish( $self->create_token( ')', $end ) );
         } else {
-            my $expr = $self->parse_expression( $source );
+            my $expr = $self->parse_expression( $buffer );
             return $self->parse_list( $list->add_items( $expr ) );
         }
     }
 
     method parse_token {
-        my $start = $source->current_position;
-
+        my $at = $buffer->current_position;
         my $string;
-        until ( $source->is_done ) {
-            last if $source->peek =~ /^\s|\)|\($/;
-            $string .= $source->get;
+        until ( $buffer->is_done ) {
+            last if $buffer->peek =~ /^\s|\)|\($/;
+            $string .= $buffer->get;
         }
+        return $self->create_token( $string, $at );
+    }
 
-        return Opal::Reader::Token->new(
+    method create_compound ( $at ) {
+        return Opal::Term::Compound->new->begin(
+            $self->create_token( '(', $at )
+        )
+    }
+
+    method create_token ( $string, $at ) {
+        return Opal::Term::Token->new(
             source => $string,
-            start  => $start,
-            end    => $source->current_position
+            start  => $at,
+            end    => $buffer->current_position
         );
     }
 }

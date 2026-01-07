@@ -32,7 +32,7 @@ class Opal::Expander {
         return Opal::Term::Num->new(
             value => 0+$src
         ) if looks_like_number($src);
-        return Opal::Term::Key->new( ident => $src ) if $src =~ /^\:/;
+        return Opal::Term::Key->new( ident => substr($src, 1) ) if $src =~ /^\:/;
         return Opal::Term::Sym->new( ident => $src );
     }
 

@@ -50,7 +50,9 @@ class Opal::Term::Word :isa(Opal::Term::Atom) {
 }
 
 class Opal::Term::Sym :isa(Opal::Term::Word) {}
-class Opal::Term::Key :isa(Opal::Term::Word) {}
+class Opal::Term::Key :isa(Opal::Term::Word) {
+    method to_string { ':'.$self->ident }
+}
 
 # ------------------------------------------------------------------------------
 # Pairs

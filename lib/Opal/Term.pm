@@ -4,11 +4,16 @@ use experimental qw[ class ];
 
 # ------------------------------------------------------------------------------
 
-class Opal::Term {}
+class Opal::Term {
+    method to_string { ... }
+}
 
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Unit :isa(Opal::Term) {}
+class Opal::Term::Unit :isa(Opal::Term) {
+    method to_string { '(unit)' }
+}
+
 class Opal::Term::Atom :isa(Opal::Term) {}
 
 # ------------------------------------------------------------------------------
@@ -19,9 +24,17 @@ class Opal::Term::Literal :isa(Opal::Term::Atom) {
     field $value :param :reader;
 }
 
-class Opal::Term::Num  :isa(Opal::Term::Literal) {}
-class Opal::Term::Str  :isa(Opal::Term::Literal) {}
-class Opal::Term::Bool :isa(Opal::Term::Literal) {}
+class Opal::Term::Num :isa(Opal::Term::Literal) {
+    method to_string { sprintf '%d' => $self->value }
+}
+
+class Opal::Term::Str :isa(Opal::Term::Literal) {
+    method to_string { sprintf '"%s"' => $self->value }
+}
+
+class Opal::Term::Bool :isa(Opal::Term::Literal) {
+    method to_string { $self->value ? 'true' : 'false' }
+}
 
 # ------------------------------------------------------------------------------
 # Words
@@ -29,6 +42,8 @@ class Opal::Term::Bool :isa(Opal::Term::Literal) {}
 
 class Opal::Term::Word :isa(Opal::Term::Atom) {
     field $ident :param :reader;
+
+    method to_string { $ident }
 }
 
 class Opal::Term::Sym :isa(Opal::Term::Word) {}
@@ -41,13 +56,20 @@ class Opal::Term::Key :isa(Opal::Term::Word) {}
 class Opal::Term::Pair :isa(Opal::Term) {
     field $fst :param :reader;
     field $snd :param :reader;
+
+    method to_string {
+        sprintf '(%s . %s)' => $fst->to_string, $snd->to_string;
+    }
 }
 
 # ------------------------------------------------------------------------------
 # Lists
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Nil  :isa(Opal::Term::Atom) {}
+class Opal::Term::Nil  :isa(Opal::Term::Atom) {
+    method to_string { '()' }
+}
+
 class Opal::Term::List :isa(Opal::Term) {
     field $items :param :reader = +[];
 
@@ -56,9 +78,10 @@ class Opal::Term::List :isa(Opal::Term) {
     method at ($idx) { $items->[ $idx->value ] }
 
     method first { $items->[0] }
-    method rest {
-        return Opal::Term::Nil->new if scalar @$items == 1;
-        return Opal::Term::List->new( items => $items->@[ 1 .. $#{$items} ] );
+    method rest  { $items->@[ 1 .. $#{$items} ] }
+
+    method to_string {
+        sprintf '(%s)' => join ' ' => map $_->to_string, @$items;
     }
 }
 
@@ -74,8 +97,14 @@ class Opal::Term::Hash :isa(Opal::Term) {
     method set    ($key, $value) { $entries->{ $key->ident } = $value }
     method delete ($key)         { delete $entries->{ $key->ident } }
 
-    method keys   { Opal::Term::List->new( items => [ map { Key->new( ident => $_ ) } keys %$entries ] ) }
-    method values { Opal::Term::List->new( items => [ values %$entries ] ) }
+    method keys   { map { Key->new( ident => $_ ) } keys %$entries }
+    method values { values %$entries }
+
+    method to_string {
+        sprintf '%%(%s)' => join ' ' => map {
+            sprintf '%s : %s' => $_, $entries->{$_}->to_string
+        } keys %$entries;
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -87,23 +116,41 @@ class Opal::Term::Applicative :isa(Opal::Term::Callable) {}
 class Opal::Term::Operative   :isa(Opal::Term::Callable) {}
 
 class Opal::Term::Applicative::Native :isa(Opal::Term::Applicative) {
-    field $body :param :reader;
+    field $params :param :reader;
+    field $body   :param :reader;
+
+    method to_string {
+        sprintf '(native:[%s]:applicative)' => $params->to_string;
+    }
 }
 
 class Opal::Term::Operative::Native :isa(Opal::Term::Operative) {
-    field $body :param :reader;
+    field $params :param :reader;
+    field $body   :param :reader;
+
+    method to_string {
+        sprintf '(native:[%s]:operative)' => $params->to_string;
+    }
 }
 
 class Opal::Term::Lambda :isa(Opal::Term::Applicative) {
     field $params :param :reader;
     field $body   :param :reader;
     field $env    :param :reader;
+
+    method to_string {
+        sprintf '(lambda (%s) %s)' => $params->to_string, $body->to_string;
+    }
 }
 
 class Opal::Term::FExpr :isa(Opal::Term::Operative) {
     field $params :param :reader;
     field $body   :param :reader;
     field $env    :param :reader;
+
+    method to_string {
+        sprintf '(fexpr (%s) %s)' => $params->to_string, $body->to_string;
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -118,8 +165,7 @@ class Opal::Term::Token :isa(Opal::Term) {
     method is_synthetic { $start == -1 && $end == -1 }
 
     method to_string {
-        return sprintf 'Token["%s"]' => $source if $self->is_synthetic;
-        return sprintf 'Token["%s":%d,%d]' => $source, $start, $end;
+        sprintf '(token:["%s"]:loc[%d;%d])' => $source, $start, $end
     }
 }
 
@@ -137,12 +183,69 @@ class Opal::Term::Compound :isa(Opal::Term) {
     method finish ($token) { $close = $token; $self }
 
     method to_string {
-        return sprintf 'Compound[-](%s)[-]' => (join ';' => map { $_->to_string } @$items)
-            if $self->is_synthetic;
-        return sprintf 'Compound[%s](%s)[-]' => $open->to_string, (join ';' => map { $_->to_string } @$items)
-            if $self->is_unfinished;
-        return sprintf 'Compound[%s](%s)[%s]' => $open->to_string, (join ';' => map { $_->to_string } @$items), $close->to_string;
+        sprintf '(compound:[%s])' => (join ' ' => map $_->to_string, @$items);
     }
+}
+
+# ------------------------------------------------------------------------------
+# Kontinuations
+# ------------------------------------------------------------------------------
+
+class Opal::Term::Kontinue :isa(Opal::Term) {
+    field $stack :param :reader = +[];
+    field $env   :param :reader;
+}
+
+class Opal::Term::Kontinue::Host :isa(Opal::Term::Kontinue) {
+    field $metadata :param :reader;
+}
+
+class Opal::Term::Kontinue::Throw :isa(Opal::Term::Kontinue) {
+    field $exception :param :reader;
+}
+
+class Opal::Term::Kontinue::Catch :isa(Opal::Term::Kontinue) {
+    field $handler :param :reader;
+}
+
+class Opal::Term::Kontinue::IfElse :isa(Opal::Term::Kontinue) {
+    field $condition :param :reader;
+    field $if_true   :param :reader;
+    field $if_false  :param :reader;
+}
+
+class Opal::Term::Kontinue::Define :isa(Opal::Term::Kontinue) {
+    field $name :param :reader;
+}
+
+class Opal::Term::Kontinue::Return :isa(Opal::Term::Kontinue) {
+    field $value :param :reader;
+}
+
+class Opal::Term::Kontinue::Eval::Expr :isa(Opal::Term::Kontinue) {
+    field $expr :param :reader;
+}
+
+class Opal::Term::Kontinue::Eval::TOS :isa(Opal::Term::Kontinue) {}
+
+class Opal::Term::Kontinue::Eval::Cons :isa(Opal::Term::Kontinue) {
+    field $cons :param :reader;
+}
+
+class Opal::Term::Kontinue::Eval::Cons::Rest :isa(Opal::Term::Kontinue) {
+    field $rest :param :reader;
+}
+
+class Opal::Term::Kontinue::Apply::Expr :isa(Opal::Term::Kontinue) {
+    field $args :param :reader;
+}
+
+class Opal::Term::Kontinue::Apply::Operative :isa(Opal::Term::Kontinue) {
+    field $call :param :reader;
+}
+
+class Opal::Term::Kontinue::Apply::Applicative :isa(Opal::Term::Kontinue) {
+    field $call :param :reader;
 }
 
 # ------------------------------------------------------------------------------
@@ -159,58 +262,12 @@ class Opal::Term::Environment :isa(Opal::Term::Hash) {
     method is_root    { not defined $parent }
     method has_parent {     defined $parent }
 
-    method derive { __CLASS__->new( parent => $self ) }
+    method derive (%bindings) {
+        __CLASS__->new( parent => $self, entries => \%bindings )
+    }
 }
 
 # ------------------------------------------------------------------------------
-# Kontinuations
-# ------------------------------------------------------------------------------
-
-=pod
-
-export type HostKontinue = {
-    op     : 'HOST',
-    stack  : Term[],
-    env    : Environment,
-    action : string,
-    args   : Term[],
-};
-
-export type ThrowKontinue = {
-    op        : 'THROW',
-    stack     : Term[],
-    env       : Environment,
-    exception : Exception
-};
-
-export type CatchKontinue = {
-    op        : 'CATCH',
-    stack     : Term[],
-    env       : Environment,
-    handler   : Applicative
-};
-
-export type Kontinue =
-    | HostKontinue
-    | ThrowKontinue
-    | CatchKontinue
-    | { op : 'IF/ELSE', stack : Term[], env : Environment, cond : Term, ifTrue : Term, ifFalse : Term }
-    | { op : 'DEFINE', stack : Term[], env : Environment, name  : Sym }
-    | { op : 'RETURN', stack : Term[], env : Environment, value : Term }
-    | { op : 'EVAL/EXPR',      stack : Term[], env : Environment, expr : Term }
-    | { op : 'EVAL/TOS',       stack : Term[], env : Environment }
-    | { op : 'EVAL/CONS',      stack : Term[], env : Environment, cons : Cons }
-    | { op : 'EVAL/CONS/REST', stack : Term[], env : Environment, rest : Term }
-    | { op : 'APPLY/EXPR',        stack : Term[], env : Environment, args : Term }
-    | { op : 'APPLY/OPERATIVE',   stack : Term[], env : Environment, call : Operative, args : Term }
-    | { op : 'APPLY/APPLICATIVE', stack : Term[], env : Environment, call : Applicative }
-
-=cut
-
-
-
-
-
 
 
 

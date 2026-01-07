@@ -38,6 +38,8 @@ class Opal::Expander {
 
     method expand_compound ($compound) {
         my @items = $compound->items->@*;
+        return Opal::Term::Nil->new if scalar @items == 0;
+
         my @list;
         while (@items) {
             my $item     = shift @items;

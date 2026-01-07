@@ -5,6 +5,9 @@ use experimental qw[ class ];
 # ------------------------------------------------------------------------------
 
 class Opal::Term {
+
+    method kind { __CLASS__ =~ s/^Opal\:\:Term\:\://r }
+
     method to_string { ... }
 }
 
@@ -165,7 +168,7 @@ class Opal::Term::Token :isa(Opal::Term) {
     method is_synthetic { $start == -1 && $end == -1 }
 
     method to_string {
-        sprintf '(token:["%s"]:loc[%d;%d])' => $source, $start, $end
+        sprintf '(token:[\'%s\']:loc[%d;%d])' => $source, $start, $end
     }
 }
 
@@ -194,10 +197,25 @@ class Opal::Term::Compound :isa(Opal::Term) {
 class Opal::Term::Kontinue :isa(Opal::Term) {
     field $stack :param :reader = +[];
     field $env   :param :reader;
+
+    method kind { __CLASS__ =~ s/^Opal\:\:Term\:\:Kontinue\:\://r }
+
+    method stack_pop       { pop  @$stack }
+    method stack_push (@e) { push @$stack => @e }
+    method spill_stack {
+        my @s = @$stack;
+        @$stack = ();
+        return @s;
+    }
+
+    method to_string {
+        sprintf '(kontinue %s:[%s] %s)' => $self->kind, (join ', ' => map $_->to_string, @$stack), $env->to_string;
+    }
 }
 
 class Opal::Term::Kontinue::Host :isa(Opal::Term::Kontinue) {
-    field $metadata :param :reader;
+    field $effect  :param :reader;
+    field $options :param :reader = +{};
 }
 
 class Opal::Term::Kontinue::Throw :isa(Opal::Term::Kontinue) {

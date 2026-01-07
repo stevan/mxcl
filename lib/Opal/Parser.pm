@@ -9,7 +9,7 @@ use IO::Scalar;
 use Opal::Term;
 use Opal::Tools::CharBuffer;
 
-class Opal::Reader {
+class Opal::Parser {
     field $buffer :param :reader;
 
     ADJUST {
@@ -20,7 +20,7 @@ class Opal::Reader {
         $buffer = Opal::Tools::CharBuffer->new( handle => $buffer )
             if $buffer isa IO::Handle;
 
-        confess "Expected either a string, an IO::Handler or a Opal::Reader::Tools::Charbuffer, not $buffer"
+        confess "Expected either a string, an IO::Handle or a Opal::Tools::Charbuffer, not $buffer"
             unless $buffer isa Opal::Tools::CharBuffer;
     }
 
@@ -30,8 +30,7 @@ class Opal::Reader {
             my $expr = $self->parse_expression;
             push @exprs => $expr;
         }
-
-        return \@exprs;
+        return @exprs;
     }
 
     method parse_expression {
@@ -46,8 +45,7 @@ class Opal::Reader {
     }
 
     method parse_list ( $list ) {
-        my $next = $buffer->discard_whitespace_and_peek;
-        if ( !$next || $next eq ')' ) {
+        if ( $buffer->discard_whitespace_and_peek eq ')' ) {
             my $end = $buffer->current_position;
             $buffer->skip(1);
             return $list->finish( $self->create_token( ')', $end ) );

@@ -7,15 +7,21 @@ use Test::More;
 use Data::Dumper qw[ Dumper ];
 use Carp         qw[ confess ];
 
-use Opal::Reader;
+use Opal::Parser;
+use Opal::Expander;
 
-my $parser = Opal::Reader->new(
+my $parser = Opal::Parser->new(
     buffer => q[
 
-    (1 2 3)
+    (1 true (3 "false"))
 
 ]);
 
-my $exprs = $parser->parse;
+my @exprs = $parser->parse;
 
-say $exprs->[0]->to_string;
+my $expander = Opal::Expander->new( exprs => \@exprs );
+
+my @terms = $expander->expand;
+
+say join "\n" => map { $_->to_string } @exprs;
+say join "\n" => map { $_->to_string } @terms;

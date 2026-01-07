@@ -46,6 +46,14 @@ class Opal::Expander {
             my $expanded = $self->expand_expression( $item );
             push @list => $expanded;
         }
+
+        if ($list[0] isa Opal::Term::Sym && $list[0]->ident eq 'hash') {
+            pop @list;
+            return Opal::Term::Hash->new(entries => +{
+                map { $_ isa Opal::Term::Key ? $_->ident : $_ } @list
+            });
+        }
+
         return Opal::Term::List->new( items => \@list );
     }
 }

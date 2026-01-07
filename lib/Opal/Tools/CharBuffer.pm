@@ -38,6 +38,15 @@ class Opal::Tools::CharBuffer {
                 : undef $done;
     }
 
+    method peek_ahead {
+        $done // return;
+        $buffer ne ''
+            ? substr( $buffer, 1, 2 )
+            : $handle->read( $buffer, $size )
+                ? substr( $buffer, 1, 2 )
+                : undef $done;
+    }
+
     method skip ($n=1) {
 
         $done // return;

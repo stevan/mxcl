@@ -119,20 +119,20 @@ class Opal::Term::Applicative :isa(Opal::Term::Callable) {}
 class Opal::Term::Operative   :isa(Opal::Term::Callable) {}
 
 class Opal::Term::Applicative::Native :isa(Opal::Term::Applicative) {
-    field $params :param :reader;
-    field $body   :param :reader;
+    field $name :param :reader;
+    field $body :param :reader;
 
     method to_string {
-        sprintf '(native:[%s]:applicative)' => $params->to_string;
+        sprintf '(native:[%s]:applicative)' => $name;
     }
 }
 
 class Opal::Term::Operative::Native :isa(Opal::Term::Operative) {
-    field $params :param :reader;
-    field $body   :param :reader;
+    field $name :param :reader;
+    field $body :param :reader;
 
     method to_string {
-        sprintf '(native:[%s]:operative)' => $params->to_string;
+        sprintf '(native:[%s]:operative)' => $name;
     }
 }
 
@@ -260,6 +260,7 @@ class Opal::Term::Kontinue::Apply::Expr :isa(Opal::Term::Kontinue) {
 
 class Opal::Term::Kontinue::Apply::Operative :isa(Opal::Term::Kontinue) {
     field $call :param :reader;
+    field $args :param :reader;
 }
 
 class Opal::Term::Kontinue::Apply::Applicative :isa(Opal::Term::Kontinue) {
@@ -279,6 +280,12 @@ class Opal::Term::Environment :isa(Opal::Term::Hash) {
 
     method is_root    { not defined $parent }
     method has_parent {     defined $parent }
+
+    method lookup ($key) {
+        return $self->get($key) if $self->has($key);
+        return $self->parent->lookup($key) if $self->has_parent;
+        return;
+    }
 
     method derive (%bindings) {
         __CLASS__->new( parent => $self, entries => \%bindings )

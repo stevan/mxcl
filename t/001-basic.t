@@ -14,26 +14,70 @@ use Opal::Machine;
 my $parser = Opal::Parser->new(
     buffer => q[
 
-    (hash :foo ( 10 . 20 ) :bar "FOOOOO")
+    (def thirty 30)
+
+    (def adder (lambda (x y) (+ x y)))
+
+    (list
+        30
+        thirty
+        (+ 10 20)
+        (+ 10 (* 4 5))
+        (+ (* 2 5) 20)
+        (+ (* 2 5) (* 4 (+ 3 2)))
+        ((lambda (x y) (+ x y)) 10 20)
+        (adder 10 20)
+    )
 
 ]);
 
 my $env = Opal::Term::Environment->new(entries => {
+    'lambda' => Opal::Term::Operative::Native->new(
+        name => 'lambda',
+        body => sub ($env, $params, $body) {
+            return [
+                Opal::Term::Kontinue::Return->new(
+                    env   => $env,
+                    value => Opal::Term::Lambda->new(
+                        params => $params,
+                        body   => $body,
+                        env    => $env
+                    )
+                )
+            ]
+        }
+    ),
+    'def' => Opal::Term::Operative::Native->new(
+        name => 'def',
+        body => sub ($env, $key, $value) {
+            return [
+                Opal::Term::Kontinue::Define->new( name => $key, env => $env ),
+                Opal::Term::Kontinue::Eval::Expr->new( expr => $value, env => $env ),
+            ]
+        }
+    ),
+    'list' => Opal::Term::Applicative::Native->new(
+        name => 'list',
+        body => sub ($env, @items) {
+            return Opal::Term::Nil->new if scalar @items == 0;
+            return Opal::Term::List->new( items => \@items );
+        }
+    ),
     '+' => Opal::Term::Applicative::Native->new(
-        params => Opal::Term::Nil->new,
-        body   => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value + $m->value)) }
+        name => '+',
+        body => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value + $m->value)) }
     ),
     '-' => Opal::Term::Applicative::Native->new(
-        params => Opal::Term::Nil->new,
-        body   => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value - $m->value)) }
+        name => '-',
+        body => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value - $m->value)) }
     ),
     '*' => Opal::Term::Applicative::Native->new(
-        params => Opal::Term::Nil->new,
-        body   => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value * $m->value)) }
+        name => '*',
+        body => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value * $m->value)) }
     ),
     '/' => Opal::Term::Applicative::Native->new(
-        params => Opal::Term::Nil->new,
-        body   => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value / $m->value)) }
+        name => '/',
+        body => sub ($env, $n, $m) { Opal::Term::Num->new(value => ($n->value / $m->value)) }
     ),
 });
 

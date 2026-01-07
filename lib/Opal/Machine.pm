@@ -15,6 +15,7 @@ class Opal::Machine {
 
     ADJUST {
         $ticks = 0;
+        $env   = $env->derive;
         $queue = [
             Opal::Term::Kontinue::Host->new( effect => 'SYS::exit', env => $env ),
             reverse map {
@@ -37,7 +38,7 @@ class Opal::Machine {
     method evaluate_term ($expr, $env) {
         given ($expr->kind) {
             when ('Sym') {
-                my $value = $env->get( $expr ) // confess "Could not find ".($expr->ident)." in Environment";
+                my $value = $env->lookup( $expr ) // confess "Could not find ".($expr->ident)." in Environment";
                 return Opal::Term::Kontinue::Return->new( value => $value, env => $env )
             }
             when ('List') {
@@ -52,6 +53,8 @@ class Opal::Machine {
     method run_until_host {
         while (@$queue) {
             $ticks++;
+            warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
+            warn join "\n  " => "QUEUE:", (map $_->to_string, @$queue), "\n";
             my $k = pop @$queue;
             given ($k->kind) {
                 when ('Host') {
@@ -59,6 +62,20 @@ class Opal::Machine {
                 }
                 when ('Return') {
                     $self->return_values( $k->value )
+                }
+                when ('Define') {
+                    my $value = $k->stack_pop();
+                    $k->env->set( $k->name, $value );
+                    $self->return_values( $value );
+                }
+                when ('IfElse') {
+                    die 'TODO - If/Else'
+                }
+                when ('Throw') {
+                    die 'TODO - Throw'
+                }
+                when ('Catch') {
+                    die 'TODO - Catch'
                 }
                 when ('Eval::Expr') {
                     push @$queue => $self->evaluate_term( $k->expr, $k->env );
@@ -94,7 +111,11 @@ class Opal::Machine {
                     my $call = $k->stack_pop();
 
                     if ($call isa Opal::Term::Operative) {
-                        die 'TODO - Apply Expr to Operative';
+                        push @$queue => Opal::Term::Kontinue::Apply::Operative->new(
+                            env  => $k->env,
+                            call => $call,
+                            args => $k->args,
+                        );
                     }
                     elsif ($call isa Opal::Term::Applicative) {
                         push @$queue => Opal::Term::Kontinue::Apply::Applicative->new(
@@ -114,7 +135,16 @@ class Opal::Machine {
                     }
                 }
                 when ('Apply::Operative') {
-                    die 'TODO - Apply Operative';
+                    my $call = $k->call;
+                    if ($call isa Opal::Term::Operative::Native) {
+                        push @$queue => $call->body->( $k->env, $k->args->items->@* )->@*;
+                    }
+                    elsif ($call isa Opal::Term::FExpr) {
+                        die 'TODO - user-defined FExpr';
+                    }
+                    else {
+                        die "WTF, what is $call in Apply::Applicative";
+                    }
                 }
                 when ('Apply::Applicative') {
                     my $call = $k->call;
@@ -125,7 +155,21 @@ class Opal::Machine {
                         );
                     }
                     elsif ($call isa Opal::Term::Lambda) {
-                        die 'TODO - handle Lambda'
+                        my $lambda = $k->call;
+
+                        my @params = $lambda->params->items->@*;
+                        my @args   = $k->spill_stack;
+
+                        my %bindings;
+                        for (my $i = 0; $i < scalar @params; $i++) {
+                            $bindings{ $params[$i]->ident } = $args[$i];
+                        }
+
+                        my $local = $lambda->env->derive(%bindings);
+                        push @$queue => Opal::Term::Kontinue::Eval::Expr->new(
+                            env  => $local,
+                            expr => $lambda->body
+                        );
                     }
                     else {
                         die "WTF, what is $call in Apply::Applicative";

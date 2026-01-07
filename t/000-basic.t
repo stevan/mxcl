@@ -7,21 +7,12 @@ use Test::More;
 use Data::Dumper qw[ Dumper ];
 use Carp         qw[ confess ];
 
-use Opal::Parser;
-use Opal::Expander;
 
-my $parser = Opal::Parser->new(
-    buffer => q[
+my $source = q[
+    %( :foo 10 :bar '(+ 10 10) )
+];
 
-    (1 true (3 "false"))
 
-]);
+my @tokens = grep defined, split /(\'\(|\%\(|\(|\)|\s+)/ => $source;
 
-my @exprs = $parser->parse;
-
-my $expander = Opal::Expander->new( exprs => \@exprs );
-
-my @terms = $expander->expand;
-
-say join "\n" => map { $_->to_string } @exprs;
-say join "\n" => map { $_->to_string } @terms;
+say "[$_]" foreach grep !/\s+/, grep $_, @tokens;

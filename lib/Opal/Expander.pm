@@ -56,7 +56,9 @@ class Opal::Expander {
         # expand hashes here ...
         if ($list[0] isa Opal::Term::Sym && $list[0]->ident eq 'hash') {
             shift @list;
+            # XXX - check for even-sized list here
             return Opal::Term::Hash->new(entries => +{
+                # FIXME - this is kinda gross, do better
                 map { $_ isa Opal::Term::Key ? $_->ident : $_ } @list
             });
         }

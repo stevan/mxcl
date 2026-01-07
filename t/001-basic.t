@@ -14,7 +14,7 @@ use Opal::Machine;
 my $parser = Opal::Parser->new(
     buffer => q[
 
-    (hash :foo ( 10 . 20 ) :bar "FOOOOO" )
+    (hash :foo ( 10 . 20 ) :bar "FOOOOO")
 
 ]);
 

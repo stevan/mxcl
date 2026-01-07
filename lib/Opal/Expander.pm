@@ -32,7 +32,7 @@ class Opal::Expander {
         return Opal::Term::Num->new(
             value => 0+$src
         ) if looks_like_number($src);
-        return Opal::Term::Tag->new( ident => $src ) if $src =~ /^\:/;
+        return Opal::Term::Key->new( ident => $src ) if $src =~ /^\:/;
         return Opal::Term::Sym->new( ident => $src );
     }
 
@@ -47,13 +47,21 @@ class Opal::Expander {
             push @list => $expanded;
         }
 
+        # expand pairs ...
+        if (scalar @list == 3 && $list[1] isa Opal::Term::Sym && $list[1]->ident eq '.') {
+            my ($fst, $dot, $snd) = @list;
+            return Opal::Term::Pair->new( fst => $fst, snd => $snd );
+        }
+
+        # expand hashes here ...
         if ($list[0] isa Opal::Term::Sym && $list[0]->ident eq 'hash') {
-            pop @list;
+            shift @list;
             return Opal::Term::Hash->new(entries => +{
                 map { $_ isa Opal::Term::Key ? $_->ident : $_ } @list
             });
         }
 
+        # otherwise it is a list ...
         return Opal::Term::List->new( items => \@list );
     }
 }

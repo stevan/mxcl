@@ -14,7 +14,7 @@ use Opal::Machine;
 my $parser = Opal::Parser->new(
     buffer => q[
 
-    (hash :foo 10 :bar 20)
+    (hash :foo ( 10 . 20 ) :bar "FOOOOO" )
 
 ]);
 
@@ -51,7 +51,7 @@ my $machine = Opal::Machine->new(
     env     => $env
 );
 
-#my $result = $machine->run;
+my $result = $machine->run;
 
 say "RESULT is ", $result->to_string;
 

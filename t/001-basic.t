@@ -32,6 +32,8 @@ my $source = q[
 
 ];
 
+#$source = q[ %( :foo 10 :bar 20 ) ];
+
 my $env = Opal::Term::Environment->new(entries => {
     'lambda' => Opal::Term::Operative::Native->new(
         name => 'lambda',
@@ -86,11 +88,7 @@ my $env = Opal::Term::Environment->new(entries => {
     ),
     'rest' => Opal::Term::Applicative::Native->new(
         name => 'rest',
-        body => sub ($env, $list) {
-            my @rest = $list->rest;
-            return Opal::Term::Nil->new if scalar @rest == 0;
-            return Opal::Term::List->new( items => \@rest );
-        }
+        body => sub ($env, $list) { $list->rest }
     ),
     '+' => Opal::Term::Applicative::Native->new(
         name => '+',

@@ -117,7 +117,7 @@ class Opal::Term::Hash :isa(Opal::Term) {
 
     method to_string {
         sprintf '%%(%s)' => join ' ' => map {
-            sprintf '%s %s' => $_, $entries->{$_}->to_string
+            sprintf ':%s %s' => $_, $entries->{$_}->to_string
         } keys %$entries;
     }
 }

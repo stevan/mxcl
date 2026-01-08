@@ -37,7 +37,7 @@ class Opal::Expander {
     }
 
     method expand_compound ($compound) {
-        my @items = $compound->items->@*;
+        my @items = $compound->uncons;
         return Opal::Term::Nil->new if scalar @items == 0;
 
         my @list;
@@ -54,8 +54,7 @@ class Opal::Expander {
         }
 
         # expand hashes here ...
-        if ($list[0] isa Opal::Term::Sym && $list[0]->ident eq 'hash') {
-            shift @list;
+        if ($compound->from->source eq '%(') {
             # XXX - check for even-sized list here
             return Opal::Term::Hash->new(entries => +{
                 # FIXME - this is kinda gross, do better

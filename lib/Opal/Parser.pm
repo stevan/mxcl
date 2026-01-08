@@ -35,7 +35,7 @@ class Opal::Parser {
 
     method parse_expression {
         my $token = shift @tokens;
-        say "parse_expression ".$token->to_string;
+        #say "parse_expression ".$token->to_string;
         return $self->parse_compound(Opal::Term::Compound->new( from => $token ))
             if $token->value eq '('
             || $token->value eq '%(';
@@ -43,14 +43,14 @@ class Opal::Parser {
     }
 
     method parse_compound ( $compound ) {
-        say "parse_compound ".$compound->to_string;
+        #say "parse_compound ".$compound->to_string;
         if ($tokens[0]->value eq ')') {
             shift @tokens;
             return $compound;
         }
-        say "... parse_expression ";
+        #say "... parse_expression ";
         my $expr = $self->parse_expression;
-        say "... parse_compound EXPR:".$expr->to_string;
+        #say "... parse_compound EXPR:".$expr->to_string;
         return $self->parse_compound( $compound->append( $expr ) );
     }
 

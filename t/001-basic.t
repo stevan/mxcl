@@ -28,17 +28,11 @@ my $source = q[
         (adder 10 20)
         (first (list 30 20 10))
         (first (rest (list 40 30 20 10)))
+        (try (+ 10 20) (catch (e) e))
     )
 
 ];
 
-$source = q[
-
-    (try
-        (+ 10 20)
-        (catch (e) e))
-
-];
 
 my $env = Opal::Term::Environment->new(entries => {
     'throw' => Opal::Term::Operative::Native->new(

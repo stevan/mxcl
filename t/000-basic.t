@@ -4,15 +4,17 @@ use v5.42;
 use experimental qw[ class switch ];
 
 use Test::More;
-use Data::Dumper qw[ Dumper ];
-use Carp         qw[ confess ];
+use importer 'Data::Dumper' => qw[ Dumper ];
+use importer 'Carp'         => qw[ confess ];
 
+use Opal::Parser;
 
 my $source = q[
-    %( :foo 10 :bar '(+ 10 10) )
+    (10 (20 30) 40)
 ];
 
+my $parser = Opal::Parser->new;
 
-my @tokens = grep defined, split /(\'\(|\%\(|\(|\)|\s+)/ => $source;
+my @tokens = $parser->parse($source);
 
-say "[$_]" foreach grep !/\s+/, grep $_, @tokens;
+say $_->to_string foreach @tokens;

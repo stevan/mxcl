@@ -17,7 +17,7 @@ class Opal::Machine {
         $ticks = 0;
         $env   = $env->derive;
         $queue = [
-            Opal::Term::Kontinue::Host->new( effect => 'SYS::exit', env => $env ),
+            Opal::Term::Kontinue::Host->new( effect => 'SYS.exit', env => $env ),
             reverse map {
                 Opal::Term::Kontinue::Eval::Expr->new(
                     expr => $_,
@@ -54,8 +54,9 @@ class Opal::Machine {
         while (@$queue) {
             $ticks++;
             warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
-            warn join "\n  " => "QUEUE:", (map $_->to_string, @$queue), "\n";
             my $k = pop @$queue;
+            warn sprintf "KONT :=> %s\n" => $k->to_string;
+            warn join "\n  " => "QUEUE:", (map $_->to_string, reverse @$queue), "\n";
             given ($k->kind) {
                 when ('Host') {
                     return $k
@@ -89,18 +90,18 @@ class Opal::Machine {
                     push @$queue => (
                         Opal::Term::Kontinue::Apply::Expr->new(
                             env  => $k->env,
-                            args => Opal::Term::List->new(items => [ $list->rest ])
+                            args => $list->rest
                         ),
                         $self->evaluate_term( $list->first, $k->env )
                     );
                 }
                 when ('Eval::Cons::Rest') {
                     my $list = $k->rest;
-                    my @rest = $list->rest;
-                    if (scalar @rest > 0) {
+                    my $rest = $list->rest;
+                    unless ($rest isa Opal::Term::Nil) {
                         push @$queue => Opal::Term::Kontinue::Eval::Cons::Rest->new(
                             env  => $k->env,
-                            rest => Opal::Term::List->new(items => \@rest )
+                            rest => $rest
                         );
                     }
 
@@ -137,7 +138,7 @@ class Opal::Machine {
                 when ('Apply::Operative') {
                     my $call = $k->call;
                     if ($call isa Opal::Term::Operative::Native) {
-                        push @$queue => $call->body->( $k->env, $k->args->items->@* )->@*;
+                        push @$queue => $call->body->( $k->env, $k->args->uncons )->@*;
                     }
                     elsif ($call isa Opal::Term::FExpr) {
                         die 'TODO - user-defined FExpr';
@@ -157,7 +158,7 @@ class Opal::Machine {
                     elsif ($call isa Opal::Term::Lambda) {
                         my $lambda = $k->call;
 
-                        my @params = $lambda->params->items->@*;
+                        my @params = $lambda->params->uncons;
                         my @args   = $k->spill_stack;
 
                         my %bindings;

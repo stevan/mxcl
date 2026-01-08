@@ -78,12 +78,22 @@ class Opal::Term::Nil  :isa(Opal::Term::Atom) {
 class Opal::Term::List :isa(Opal::Term) {
     field $items :param :reader = +[];
 
+    method uncons { @$items }
+
     method length { scalar @$items }
 
     method at ($idx) { $items->[ $idx->value ] }
 
     method first { $items->[0] }
-    method rest  { $items->@[ 1 .. $#{$items} ] }
+    method rest  {
+        return Opal::Term::Nil->new if scalar @$items == 1;
+        return __CLASS__->new( items => [ $items->@[ 1 .. $#{$items} ] ] );
+    }
+
+    method append ($other) {
+        push @$items, $other;
+        $self;
+    }
 
     method to_string {
         sprintf '(%s)' => join ' ' => map $_->to_string, @$items;
@@ -144,7 +154,7 @@ class Opal::Term::Lambda :isa(Opal::Term::Applicative) {
     field $env    :param :reader;
 
     method to_string {
-        sprintf '(lambda (%s) %s)' => $params->to_string, $body->to_string;
+        sprintf '(lambda %s %s)' => $params->to_string, $body->to_string;
     }
 }
 
@@ -154,7 +164,7 @@ class Opal::Term::FExpr :isa(Opal::Term::Operative) {
     field $env    :param :reader;
 
     method to_string {
-        sprintf '(fexpr (%s) %s)' => $params->to_string, $body->to_string;
+        sprintf '(fexpr %s %s)' => $params->to_string, $body->to_string;
     }
 }
 
@@ -162,33 +172,22 @@ class Opal::Term::FExpr :isa(Opal::Term::Operative) {
 # Reader Objects
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Token :isa(Opal::Term) {
-    field $source :param :reader;
-    field $start  :param :reader = -1;
-    field $end    :param :reader = -1;
+class Opal::Term::Token :isa(Opal::Term::Str) {
 
-    method is_synthetic { $start == -1 && $end == -1 }
+    method source { $self->value }
 
     method to_string {
-        sprintf '(token:[\'%s\']:loc[%d;%d])' => $source, $start, $end
+        sprintf '<token %s>' => $self->value
     }
 }
 
-class Opal::Term::Compound :isa(Opal::Term) {
-    field $items  :param :reader = +[];
-    field $open   :param :reader = undef;
-    field $close  :param :reader = undef;
-
-    method is_synthetic  { not(defined $open) && not(defined $close) }
-    method is_unfinished { not(defined $close) }
-
-    method add_items (@e) { push @$items => @e; $self }
-
-    method begin  ($token) { $open  = $token; $self }
-    method finish ($token) { $close = $token; $self }
+class Opal::Term::Compound :isa(Opal::Term::List) {
+    field $from :param :reader;
 
     method to_string {
-        sprintf '(compound:[%s])' => (join ' ' => map $_->to_string, @$items);
+        sprintf '<compound %s:[%s]>'
+            => $from->to_string,
+               (join ' ' => map $_->to_string, $self->uncons);
     }
 }
 
@@ -210,63 +209,118 @@ class Opal::Term::Kontinue :isa(Opal::Term) {
         return @s;
     }
 
-    method to_string {
-        sprintf '(kontinue %s:[%s] %s)' => $self->kind, (join ', ' => map $_->to_string, @$stack), $env->to_string;
+    method format ($msg) {
+        sprintf '(K %s {%s} @[%s] %s)' => $self->kind, $msg, (join ', ' => map $_->to_string, @$stack), $env->to_string;
     }
+
+    method to_string { $self->format('') }
 }
 
 class Opal::Term::Kontinue::Host :isa(Opal::Term::Kontinue) {
     field $effect  :param :reader;
     field $options :param :reader = +{};
+
+    method to_string {
+        $self->format( sprintf ':effect %s' => $effect )
+    }
 }
 
 class Opal::Term::Kontinue::Throw :isa(Opal::Term::Kontinue) {
     field $exception :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':exception %s' => $exception->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Catch :isa(Opal::Term::Kontinue) {
     field $handler :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':handler %s' => $handler->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::IfElse :isa(Opal::Term::Kontinue) {
     field $condition :param :reader;
     field $if_true   :param :reader;
     field $if_false  :param :reader;
+
+    method to_string {
+        $self->format(
+            sprintf ':condition %s :if-true %s :if-false %s'
+                => $condition->to_string,
+                   $if_true->to_string,
+                   $if_false->to_string,
+        )
+    }
 }
 
 class Opal::Term::Kontinue::Define :isa(Opal::Term::Kontinue) {
     field $name :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':name %s' => $name->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Return :isa(Opal::Term::Kontinue) {
     field $value :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':value %s' => $value->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Eval::Expr :isa(Opal::Term::Kontinue) {
     field $expr :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':expr %s' => $expr->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Eval::TOS :isa(Opal::Term::Kontinue) {}
 
 class Opal::Term::Kontinue::Eval::Cons :isa(Opal::Term::Kontinue) {
     field $cons :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':cons %s' => $cons->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Eval::Cons::Rest :isa(Opal::Term::Kontinue) {
     field $rest :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':rest %s' => $rest->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Apply::Expr :isa(Opal::Term::Kontinue) {
     field $args :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':args %s' => $args->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Apply::Operative :isa(Opal::Term::Kontinue) {
     field $call :param :reader;
     field $args :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':call %s :args %s' => $call->to_string, $args->to_string )
+    }
 }
 
 class Opal::Term::Kontinue::Apply::Applicative :isa(Opal::Term::Kontinue) {
     field $call :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':call %s' => $call->to_string )
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -275,6 +329,15 @@ class Opal::Term::Kontinue::Apply::Applicative :isa(Opal::Term::Kontinue) {
 
 class Opal::Term::Exception :isa(Opal::Term) {
     field $msg :param :reader;
+
+    ADJUST {
+        $msg = Opal::Term::Str->new( value => $msg )
+            unless blessed $msg;
+    }
+
+    method to_string {
+        sprintf '(exception %s)' => $msg->to_string;
+    }
 }
 
 class Opal::Term::Environment :isa(Opal::Term::Hash) {

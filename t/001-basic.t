@@ -11,8 +11,7 @@ use Opal::Parser;
 use Opal::Expander;
 use Opal::Machine;
 
-my $parser = Opal::Parser->new(
-    buffer => q[
+my $source = q[
 
     (def thirty 30)
 
@@ -31,7 +30,7 @@ my $parser = Opal::Parser->new(
         (first (rest (list 40 30 20 10)))
     )
 
-]);
+];
 
 my $env = Opal::Term::Environment->new(entries => {
     'lambda' => Opal::Term::Operative::Native->new(
@@ -111,11 +110,10 @@ my $env = Opal::Term::Environment->new(entries => {
     ),
 });
 
-my @exprs = $parser->parse;
-
+my $parser   = Opal::Parser->new;
+my @exprs    = $parser->parse($source);
 my $expander = Opal::Expander->new( exprs => \@exprs );
-
-my @terms = $expander->expand;
+my @terms    = $expander->expand;
 
 say join "\n" => map { $_->to_string } @exprs;
 say join "\n" => map { $_->to_string } @terms;

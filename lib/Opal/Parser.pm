@@ -9,14 +9,13 @@ use IO::Scalar;
 use Opal::Term;
 
 class Opal::Parser {
-    field $include_whitespace :param :reader = false;
-
     field @tokens;
 
     method parse ($input) {
         my $source = $self->coerce_input($input);
 
         while (defined(my $line = $source->getline)) {
+            # TODO - add comment stripping
             my @chunks = $self->tokenize( $line );
             push @tokens => map Opal::Term::Token->new( value => $_ ), @chunks;
         }
@@ -73,7 +72,7 @@ class Opal::Parser {
     }
 
     method tokenize ($source) {
-        my @chunked = grep defined && $_, split /(\'|\%\(|\(|\)|\s+)/ => $source;
+        my @chunked = grep defined, split /(\'|\%\(|\(|\)|\s+)/ => $source;
         my @assembled;
         while (@chunked) {
             my $chunk = shift @chunked;
@@ -90,8 +89,7 @@ class Opal::Parser {
 
                 $chunk = $string;
             }
-            push @assembled => $chunk
-                unless $chunk =~ /^\s*$/ && !$include_whitespace;
+            push @assembled => $chunk unless $chunk =~ /^\s*$/;
         }
         return @assembled;
     }

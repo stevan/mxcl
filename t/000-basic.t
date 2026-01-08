@@ -11,7 +11,7 @@ use Opal::Parser;
 use Opal::Expander;
 
 my $source = q[
-    (foo '(10 20) 40)
+    ""
 ];
 
 my $parser   = Opal::Parser->new;
@@ -22,4 +22,5 @@ my @terms    = $expander->expand;
 say 'TOKENS:';
 say join "\n" => map { $_->to_string } @exprs;
 say 'TERMS:';
-say join "\n" => map { $_->to_string } @terms;
+say join "\n" => map { sprintf '%s := %s' => blessed $_, $_->to_string } @terms;
+

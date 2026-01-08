@@ -10,6 +10,7 @@ class Opal::Term {
     method kind { __CLASS__ =~ s/^Opal\:\:Term\:\://r }
 
     method to_string { ... }
+    method to_bool   { true }
 }
 
 # ==============================================================================
@@ -28,14 +29,17 @@ class Opal::Term::Literal :isa(Opal::Term::Atom) {
 
 class Opal::Term::Num :isa(Opal::Term::Literal) {
     method to_string { sprintf '%d' => $self->value }
+    method to_bool   { $self->value != 0 }
 }
 
 class Opal::Term::Str :isa(Opal::Term::Literal) {
     method to_string { sprintf '"%s"' => $self->value }
+    method to_bool   { $self->value ne '' }
 }
 
 class Opal::Term::Bool :isa(Opal::Term::Literal) {
     method to_string { $self->value ? 'true' : 'false' }
+    method to_bool   { $self->value }
 }
 
 # ------------------------------------------------------------------------------
@@ -72,6 +76,7 @@ class Opal::Term::Pair :isa(Opal::Term) {
 
 class Opal::Term::Nil  :isa(Opal::Term::Atom) {
     method to_string { '()' }
+    method to_bool   { false }
 }
 
 class Opal::Term::List :isa(Opal::Term) {
@@ -105,6 +110,8 @@ class Opal::Term::List :isa(Opal::Term) {
 
 class Opal::Term::Hash :isa(Opal::Term) {
     field $entries :param :reader = +{};
+
+    method size { scalar keys %$entries }
 
     method has    ($key)         { exists $entries->{ $key->ident } }
     method get    ($key)         { $entries->{ $key->ident } }
@@ -330,6 +337,7 @@ class Opal::Term::Kontinue::Apply::Applicative :isa(Opal::Term::Kontinue) {
 
 class Opal::Term::Unit :isa(Opal::Term::Nil) {
     method to_string { '(unit)' }
+    method to_bool   { false    }
 }
 
 class Opal::Term::Exception :isa(Opal::Term) {

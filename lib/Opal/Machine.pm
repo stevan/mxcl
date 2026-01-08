@@ -81,7 +81,20 @@ class Opal::Machine {
                         $self->return_values( $value );
                     }
                     when ('IfElse') {
-                        die 'TODO - If/Else'
+                        my $condition = $k->stack_pop();
+                        if ($condition->to_bool) {
+                            push @$queue =>
+                                # AND short/circuit
+                                refaddr $k->condition == refaddr $k->if_true
+                                    ? Opal::Term::Kontinue::Return->new( value => $condition, env => $k->env )
+                                    : $self->evaluate_term( $k->if_true, $k->env );
+                        } else {
+                            push @$queue =>
+                                # OR short/circuit
+                                refaddr $k->condition == refaddr $k->if_false
+                                    ? Opal::Term::Kontinue::Return->new( value => $condition, env => $k->env )
+                                    : $self->evaluate_term( $k->if_false, $k->env );
+                        }
                     }
                     when ('Throw') {
                         while (@$queue) {

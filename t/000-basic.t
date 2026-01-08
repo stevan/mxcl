@@ -8,13 +8,18 @@ use importer 'Data::Dumper' => qw[ Dumper ];
 use importer 'Carp'         => qw[ confess ];
 
 use Opal::Parser;
+use Opal::Expander;
 
 my $source = q[
-    (10 (20 30) 40)
+    (foo '(10 20) 40)
 ];
 
-my $parser = Opal::Parser->new;
+my $parser   = Opal::Parser->new;
+my @exprs    = $parser->parse($source);
+my $expander = Opal::Expander->new( exprs => \@exprs );
+my @terms    = $expander->expand;
 
-my @tokens = $parser->parse($source);
-
-say $_->to_string foreach @tokens;
+say 'TOKENS:';
+say join "\n" => map { $_->to_string } @exprs;
+say 'TERMS:';
+say join "\n" => map { $_->to_string } @terms;

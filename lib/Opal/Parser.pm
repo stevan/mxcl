@@ -39,6 +39,14 @@ class Opal::Parser {
         return $self->parse_compound(Opal::Term::Compound->new( from => $token ))
             if $token->value eq '('
             || $token->value eq '%(';
+
+        if ($token->value eq "'") {
+            return Opal::Term::Compound->new(
+                from  => $token,
+                items => [ $self->parse_expression ]
+            );
+        }
+
         return $token;
     }
 

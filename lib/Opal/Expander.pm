@@ -37,32 +37,39 @@ class Opal::Expander {
     }
 
     method expand_compound ($compound) {
-        my @items = $compound->uncons;
-        return Opal::Term::Nil->new if scalar @items == 0;
+        # expand hashes ...
+        if ($compound->from->source eq '%(') {
+            my @entries = $compound->uncons;
+            die "HASH MUST BE EVEN SIZED LIST" if (scalar(@entries) % 2) != 0;
 
-        my @list;
-        while (@items) {
-            my $item     = shift @items;
-            my $expanded = $self->expand_expression( $item );
-            push @list => $expanded;
+            my %entries;
+            foreach my ($key, $value) (@entries) {
+                $entries{ $key->value } = $self->expand_expression($value);
+            }
+
+            return Opal::Term::Hash->new(entries => \%entries);
         }
+
+        # expand empty lists
+        return Opal::Term::Nil->new if $compound->length == 0;
+
+        my @items = $compound->uncons;
 
         # expand pairs ...
-        if (scalar @list == 3 && $list[1] isa Opal::Term::Sym && $list[1]->ident eq '.') {
-            my ($fst, $dot, $snd) = @list;
-            return Opal::Term::Pair->new( fst => $fst, snd => $snd );
-        }
-
-        # expand hashes here ...
-        if ($compound->from->source eq '%(') {
-            # XXX - check for even-sized list here
-            return Opal::Term::Hash->new(entries => +{
-                # FIXME - this is kinda gross, do better
-                map { $_ isa Opal::Term::Key ? $_->ident : $_ } @list
-            });
+        if (scalar @items == 3 && $items[1] isa Opal::Term::Token && $items[1]->source eq '.') {
+            my ($fst, $dot, $snd) = @items;
+            return Opal::Term::Pair->new(
+                fst => $self->expand_expression($fst),
+                snd => $self->expand_expression($snd),
+            );
         }
 
         # otherwise it is a list ...
+        my @list = map $self->expand_expression( $_ ), @items;
+
+        unshift @list => Opal::Term::Sym->new( ident => 'quote' )
+            if $compound->from->source eq "'";
+
         return Opal::Term::List->new( items => \@list );
     }
 }

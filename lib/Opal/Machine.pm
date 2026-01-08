@@ -1,8 +1,6 @@
 
 use v5.42;
-use experimental qw[ class switch ];
-
-use importer 'Carp' => qw[ confess ];
+use experimental qw[ class switch try ];
 
 use Opal::Term;
 
@@ -38,7 +36,19 @@ class Opal::Machine {
     method evaluate_term ($expr, $env) {
         given ($expr->kind) {
             when ('Sym') {
-                my $value = $env->lookup( $expr ) // confess "Could not find ".($expr->ident)." in Environment";
+                my $value = $env->lookup( $expr );
+
+                if ( not defined $value ) {
+                    return Opal::Term::Kontinue::Throw->new(
+                        env       => $env,
+                        exception => Opal::Term::Exception->new(
+                            msg => Opal::Term::Str->new(
+                                value => "Could not find ".($expr->ident)." in Environment"
+                            )
+                        )
+                    );
+                }
+
                 return Opal::Term::Kontinue::Return->new( value => $value, env => $env )
             }
             when ('List') {
@@ -53,136 +63,174 @@ class Opal::Machine {
     method run_until_host {
         while (@$queue) {
             $ticks++;
-            warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
             my $k = pop @$queue;
-            warn sprintf "KONT :=> %s\n" => $k->to_string;
-            warn join "\n  " => "QUEUE:", (map $_->to_string, reverse @$queue), "\n";
-            given ($k->kind) {
-                when ('Host') {
-                    return $k
-                }
-                when ('Return') {
-                    $self->return_values( $k->value )
-                }
-                when ('Define') {
-                    my $value = $k->stack_pop();
-                    $k->env->set( $k->name, $value );
-                    $self->return_values( $value );
-                }
-                when ('IfElse') {
-                    die 'TODO - If/Else'
-                }
-                when ('Throw') {
-                    die 'TODO - Throw'
-                }
-                when ('Catch') {
-                    die 'TODO - Catch'
-                }
-                when ('Eval::Expr') {
-                    push @$queue => $self->evaluate_term( $k->expr, $k->env );
-                }
-                when ('Eval::TOS') {
-                    my $to_eval = $k->stack_pop();
-                    push @$queue => $self->evaluate_term( $to_eval, $k->env )
-                }
-                when ('Eval::Cons') {
-                    my $list  = $k->cons;
-                    push @$queue => (
-                        Opal::Term::Kontinue::Apply::Expr->new(
-                            env  => $k->env,
-                            args => $list->rest
-                        ),
-                        $self->evaluate_term( $list->first, $k->env )
-                    );
-                }
-                when ('Eval::Cons::Rest') {
-                    my $list = $k->rest;
-                    my $rest = $list->rest;
-                    unless ($rest isa Opal::Term::Nil) {
-                        push @$queue => Opal::Term::Kontinue::Eval::Cons::Rest->new(
-                            env  => $k->env,
-                            rest => $rest
-                        );
+            warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
+            warn "KONT :=> $k\n";
+            warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
+            try {
+                given ($k->kind) {
+                    when ('Host') {
+                        return $k
                     }
-
-                    $self->return_values( $k->spill_stack() );
-                    push @$queue => $self->evaluate_term( $list->first, $k->env );
-                }
-                when ('Apply::Expr') {
-                    my $call = $k->stack_pop();
-
-                    if ($call isa Opal::Term::Operative) {
-                        push @$queue => Opal::Term::Kontinue::Apply::Operative->new(
-                            env  => $k->env,
-                            call => $call,
-                            args => $k->args,
-                        );
+                    when ('Return') {
+                        $self->return_values( $k->value )
                     }
-                    elsif ($call isa Opal::Term::Applicative) {
-                        push @$queue => Opal::Term::Kontinue::Apply::Applicative->new(
-                            env  => $k->env,
-                            call => $call,
-                        );
-
-                        unless ($k->args isa Opal::Term::Nil) {
-                            push @$queue => Opal::Term::Kontinue::Eval::Cons::Rest->new(
+                    when ('Define') {
+                        my $value = $k->stack_pop();
+                        $k->env->set( $k->name, $value );
+                        $self->return_values( $value );
+                    }
+                    when ('IfElse') {
+                        die 'TODO - If/Else'
+                    }
+                    when ('Throw') {
+                        while (@$queue) {
+                            if ($queue->[-1] isa Opal::Term::Kontinue::Catch) {
+                                $self->return_values( $k->exception );
+                                break;
+                            } else {
+                                pop @$queue;
+                            }
+                        }
+                        # bubble up to the HOST if no catch is found
+                        return Opal::Term::Kontinue::Host->new(
+                            env    => $k->env,
+                            effect => 'SYS.error'
+                        ) if scalar @$queue == 0;
+                    }
+                    when ('Catch') {
+                        my $results = $k->stack_pop();
+                        if ($results isa Opal::Term::Exception) {
+                            my $catcher = Opal::Term::Kontinue::Apply::Applicative->new(
                                 env  => $k->env,
-                                rest => $k->args
+                                call => $k->handler,
+                            );
+                            $catcher->stack_push( $results );
+                            push @$queue => $catcher;
+                        } else {
+                            push @$queue => Opal::Term::Kontinue::Return->new(
+                                env   => $k->env,
+                                value => $results,
                             );
                         }
                     }
-                    else {
-                        die "WTF, what is $call in Apply::Expr";
+                    when ('Eval::Expr') {
+                        push @$queue => $self->evaluate_term( $k->expr, $k->env );
                     }
-                }
-                when ('Apply::Operative') {
-                    my $call = $k->call;
-                    if ($call isa Opal::Term::Operative::Native) {
-                        push @$queue => $call->body->( $k->env, $k->args->uncons )->@*;
+                    when ('Eval::TOS') {
+                        my $to_eval = $k->stack_pop();
+                        push @$queue => $self->evaluate_term( $to_eval, $k->env )
                     }
-                    elsif ($call isa Opal::Term::FExpr) {
-                        die 'TODO - user-defined FExpr';
-                    }
-                    else {
-                        die "WTF, what is $call in Apply::Applicative";
-                    }
-                }
-                when ('Apply::Applicative') {
-                    my $call = $k->call;
-                    if ($call isa Opal::Term::Applicative::Native) {
-                        push @$queue => Opal::Term::Kontinue::Return->new(
-                            env   => $k->env,
-                            value => $call->body->( $k->env, $k->spill_stack() ),
+                    when ('Eval::Cons') {
+                        my $list  = $k->cons;
+                        push @$queue => (
+                            Opal::Term::Kontinue::Apply::Expr->new(
+                                env  => $k->env,
+                                args => $list->rest
+                            ),
+                            $self->evaluate_term( $list->first, $k->env )
                         );
                     }
-                    elsif ($call isa Opal::Term::Lambda) {
-                        my $lambda = $k->call;
-
-                        my @params = $lambda->params->uncons;
-                        my @args   = $k->spill_stack;
-
-                        my %bindings;
-                        for (my $i = 0; $i < scalar @params; $i++) {
-                            $bindings{ $params[$i]->ident } = $args[$i];
+                    when ('Eval::Cons::Rest') {
+                        my $list = $k->rest;
+                        my $rest = $list->rest;
+                        unless ($rest isa Opal::Term::Nil) {
+                            push @$queue => Opal::Term::Kontinue::Eval::Cons::Rest->new(
+                                env  => $k->env,
+                                rest => $rest
+                            );
                         }
 
-                        my $local = $lambda->env->derive(%bindings);
-                        push @$queue => Opal::Term::Kontinue::Eval::Expr->new(
-                            env  => $local,
-                            expr => $lambda->body
-                        );
+                        $self->return_values( $k->spill_stack() );
+                        push @$queue => $self->evaluate_term( $list->first, $k->env );
                     }
-                    else {
-                        die "WTF, what is $call in Apply::Applicative";
+                    when ('Apply::Expr') {
+                        my $call = $k->stack_pop();
+
+                        if ($call isa Opal::Term::Operative) {
+                            push @$queue => Opal::Term::Kontinue::Apply::Operative->new(
+                                env  => $k->env,
+                                call => $call,
+                                args => $k->args,
+                            );
+                        }
+                        elsif ($call isa Opal::Term::Applicative) {
+                            push @$queue => Opal::Term::Kontinue::Apply::Applicative->new(
+                                env  => $k->env,
+                                call => $call,
+                            );
+
+                            unless ($k->args isa Opal::Term::Nil) {
+                                push @$queue => Opal::Term::Kontinue::Eval::Cons::Rest->new(
+                                    env  => $k->env,
+                                    rest => $k->args
+                                );
+                            }
+                        }
+                        else {
+                            Opal::Term::Exception->throw("WTF, what is $call in Apply::Expr");
+                        }
+                    }
+                    when ('Apply::Operative') {
+                        my $call = $k->call;
+                        if ($call isa Opal::Term::Operative::Native) {
+                            push @$queue => $call->body->( $k->env, $k->args->uncons )->@*;
+                        }
+                        elsif ($call isa Opal::Term::FExpr) {
+                            Opal::Term::Exception->throw('TODO - user-defined FExpr');
+                        }
+                        else {
+                            Opal::Term::Exception->throw("WTF, what is $call in Apply::Applicative");
+                        }
+                    }
+                    when ('Apply::Applicative') {
+                        my $call = $k->call;
+                        if ($call isa Opal::Term::Applicative::Native) {
+                            push @$queue => Opal::Term::Kontinue::Return->new(
+                                env   => $k->env,
+                                value => $call->body->( $k->env, $k->spill_stack() ),
+                            );
+                        }
+                        elsif ($call isa Opal::Term::Lambda) {
+                            my $lambda = $k->call;
+
+                            my @params = $lambda->params->uncons;
+                            my @args   = $k->spill_stack;
+
+                            my %bindings;
+                            for (my $i = 0; $i < scalar @params; $i++) {
+                                $bindings{ $params[$i]->ident } = $args[$i];
+                            }
+
+                            my $local = $lambda->env->derive(%bindings);
+                            push @$queue => Opal::Term::Kontinue::Eval::Expr->new(
+                                env  => $local,
+                                expr => $lambda->body
+                            );
+                        }
+                        else {
+                            Opal::Term::Exception->throw("WTF, what is $call in Apply::Applicative");
+                        }
+                    }
+                    default {
+                        Opal::Term::Exception->throw("UNKNOWN CONTINUATION $k");
                     }
                 }
-                default {
-                    die "UNKNOWN CONTINUATION $k";
+            } catch ($e) {
+                unless ($e isa Opal::Term::Exception) {
+                    $e = Opal::Term::Exception->new(
+                        msg => Opal::Term::Str->new( value => "$e" )
+                    );
                 }
+
+                push @$queue => Opal::Term::Kontinue::Throw->new(
+                    env       => $k->env,
+                    exception => $e
+                );
             }
         }
 
-        die "This should never happen, we should always return via HOST";
+        Opal::Term::Exception->throw("This should never happen, we should always return via HOST");
     }
 
 }

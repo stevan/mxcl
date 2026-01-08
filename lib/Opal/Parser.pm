@@ -66,7 +66,7 @@ class Opal::Parser {
         $source = IO::Scalar->new( \(my $src = "${source}") )
             unless blessed $source;
 
-        confess "Expected either a string, or an IO::Handle, not $source"
+        Opal::Term::Exception->throw("Expected either a string, or an IO::Handle, not $source")
             unless $source isa IO::Handle;
 
         return $source;
@@ -81,11 +81,11 @@ class Opal::Parser {
                 my $string = $chunk;
 
                 while (@chunked) {
-                    $string .= shift @chunked;
                     last if $string =~ /\"$/;
+                    $string .= shift @chunked;
                 }
 
-                die "Unterminated string"
+                Opal::Term::Exception->throw("Unterminated string")
                     if scalar @chunked == 0 && $string =~ /\"$/;
 
                 $chunk = $string;

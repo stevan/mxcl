@@ -5,17 +5,16 @@ use experimental qw[ class ];
 # ------------------------------------------------------------------------------
 
 class Opal::Term {
+    use overload '""' => 'to_string';
 
     method kind { __CLASS__ =~ s/^Opal\:\:Term\:\://r }
 
     method to_string { ... }
 }
 
-# ------------------------------------------------------------------------------
-
-class Opal::Term::Unit :isa(Opal::Term) {
-    method to_string { '(unit)' }
-}
+# ==============================================================================
+# ... these are built at compile time
+# ==============================================================================
 
 class Opal::Term::Atom :isa(Opal::Term) {}
 
@@ -121,6 +120,8 @@ class Opal::Term::Hash :isa(Opal::Term) {
         } keys %$entries;
     }
 }
+
+# ... these are built at runtime (or are part of the runtime)
 
 # ------------------------------------------------------------------------------
 # Functions
@@ -327,12 +328,15 @@ class Opal::Term::Kontinue::Apply::Applicative :isa(Opal::Term::Kontinue) {
 # Runtime Objects
 # ------------------------------------------------------------------------------
 
+class Opal::Term::Unit :isa(Opal::Term::Nil) {
+    method to_string { '(unit)' }
+}
+
 class Opal::Term::Exception :isa(Opal::Term) {
     field $msg :param :reader;
 
-    ADJUST {
-        $msg = Opal::Term::Str->new( value => $msg )
-            unless blessed $msg;
+    sub throw ($class, $msg) {
+        die $class->new( msg => blessed $msg ? $msg : Opal::Term::Str->new( value => $msg ) )
     }
 
     method to_string {

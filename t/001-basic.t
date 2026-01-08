@@ -32,9 +32,46 @@ my $source = q[
 
 ];
 
-#$source = q[ %( :foo 10 :bar 20 ) ];
+$source = q[
+
+    (try
+        (+ 10 20)
+        (catch (e) e))
+
+];
 
 my $env = Opal::Term::Environment->new(entries => {
+    'throw' => Opal::Term::Operative::Native->new(
+        name => 'throw',
+        body => sub ($env, $msg) {
+            return [
+                Opal::Term::Kontinue::Throw->new(
+                    env       => $env,
+                    exception => Opal::Term::Exception->new( msg => $msg ),
+                )
+            ]
+        }
+    ),
+    'try' => Opal::Term::Operative::Native->new(
+        name => 'try',
+        body => sub ($env, $expr, $handler) {
+            my ($params, $body) = $handler->rest->uncons;
+            return [
+                Opal::Term::Kontinue::Catch->new(
+                    env     => $env,
+                    handler => Opal::Term::Lambda->new(
+                        params => $params,
+                        body   => $body,
+                        env    => $env
+                    ),
+                ),
+                Opal::Term::Kontinue::Eval::Expr->new(
+                    env  => $env,
+                    expr => $expr
+                )
+            ]
+        }
+    ),
     'lambda' => Opal::Term::Operative::Native->new(
         name => 'lambda',
         body => sub ($env, $params, $body) {

@@ -2,7 +2,6 @@
 use v5.42;
 use experimental qw[ class ];
 
-use importer 'Carp'         => qw[ confess ];
 use importer 'Scalar::Util' => qw[ looks_like_number ];
 
 use Opal::Term;
@@ -37,25 +36,12 @@ class Opal::Expander {
     }
 
     method expand_compound ($compound) {
-        # expand hashes ...
-        if ($compound->from->source eq '%(') {
-            my @entries = $compound->uncons;
-            die "HASH MUST BE EVEN SIZED LIST" if (scalar(@entries) % 2) != 0;
-
-            my %entries;
-            foreach my ($key, $value) (@entries) {
-                $entries{ $key->value } = $self->expand_expression($value);
-            }
-
-            return Opal::Term::Hash->new(entries => \%entries);
-        }
-
-        # expand empty lists
-        return Opal::Term::Nil->new if $compound->length == 0;
-
         my @items = $compound->uncons;
+        # expand empty lists
+        return Opal::Term::Nil->new if scalar @items == 0;
 
-        # expand pairs ...
+        # expand pairs at compile time,
+        # as they are constructive
         if (scalar @items == 3 && $items[1] isa Opal::Term::Token && $items[1]->source eq '.') {
             my ($fst, $dot, $snd) = @items;
             return Opal::Term::Pair->new(
@@ -64,12 +50,18 @@ class Opal::Expander {
             );
         }
 
-        # otherwise it is a list ...
+        # ...
         my @list = map $self->expand_expression( $_ ), @items;
 
+        # expand quoted lists ...
         unshift @list => Opal::Term::Sym->new( ident => 'quote' )
             if $compound->from->source eq "'";
 
+        # expand hashes ...
+        unshift @list => Opal::Term::Sym->new( ident => 'hash' )
+            if $compound->from->source eq "%(";
+
+        # otherwise it is a list ...
         return Opal::Term::List->new( items => \@list );
     }
 }

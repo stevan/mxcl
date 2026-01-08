@@ -48,6 +48,19 @@ my $source = q[
 
 
 my $env = Opal::Term::Environment->new(entries => {
+    'do' => Opal::Term::Operative::Native->new(
+        name => 'do',
+        body => sub ($env, @exprs) {
+            return [
+                reverse map {
+                    Opal::Term::Kontinue::Eval::Expr->new(
+                        env  => $env,
+                        expr => $_
+                    )
+                } @exprs
+            ]
+        }
+    ),
     'and' => Opal::Term::Operative::Native->new(
         name => 'and',
         body => sub ($env, $lhs, $rhs) {

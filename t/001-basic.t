@@ -36,25 +36,56 @@ my $source = q[
         (if "test" (+ 10 20) false)
         (if "" false (+ 10 20))
         (if () false (+ 10 20))
+        (let (x 10) (+ x 20))
     )
 
 ];
 
-#$source = q[
-#
-#    (+ 10 (or 10 20))
-#
-#];
+$source = q[
+
+    (def X 10)
+
+    (defun set-X (x) (set! X x))
+
+    (set-X 100)
+
+    (let (X "hey") X)
+
+    X
+
+];
 
 
 my $env = Opal::Term::Environment->new(entries => {
+    'set!' => Opal::Term::Operative::Native->new(
+        name => 'set!',
+        body => sub ($env, $name, $value) {
+            return [
+                Opal::Term::Kontinue::Mutate->new( name => $name, env => $env ),
+                Opal::Term::Kontinue::Eval::Expr->new( expr => $value, env => $env ),
+            ]
+        }
+    ),
+    'let' => Opal::Term::Operative::Native->new(
+        name => 'let',
+        body => sub ($env, $binding, $body) {
+            my ($name, $value) = $binding->uncons;
+            my $local = $env->derive;
+            return [
+                Opal::Term::Kontinue::Eval::Expr->new( expr => $body, env => $local ),
+                Opal::Term::Kontinue::Define->new( name => $name, env => $local ),
+                Opal::Term::Kontinue::Eval::Expr->new( expr => $value, env => $local ),
+            ]
+        }
+    ),
     'do' => Opal::Term::Operative::Native->new(
         name => 'do',
         body => sub ($env, @exprs) {
+            my $local = $env->derive;
             return [
                 reverse map {
                     Opal::Term::Kontinue::Eval::Expr->new(
-                        env  => $env,
+                        env  => $local,
                         expr => $_
                     )
                 } @exprs
@@ -98,15 +129,16 @@ my $env = Opal::Term::Environment->new(entries => {
     'if' => Opal::Term::Operative::Native->new(
         name => 'if',
         body => sub ($env, $cond, $if_true, $if_false) {
+            my $local = $env->derive;
             return [
                 Opal::Term::Kontinue::IfElse->new(
-                    env       => $env,
+                    env       => $local,
                     condition => $cond,
                     if_true   => $if_true,
                     if_false  => $if_false,
                 ),
                 Opal::Term::Kontinue::Eval::Expr->new(
-                    env  => $env,
+                    env  => $local,
                     expr => $cond
                 )
             ]

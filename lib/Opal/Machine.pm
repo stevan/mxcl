@@ -75,9 +75,26 @@ class Opal::Machine {
                     when ('Return') {
                         $self->return_values( $k->value )
                     }
+                    when ('Mutate') {
+                        my $value = $k->stack_pop();
+                        my $name  = $k->name;
+
+                        if (!$k->env->update( $k->name, $value )) {
+                            push @$queue => Opal::Term::Kontinue::Throw->new(
+                                env       => $env,
+                                exception => Opal::Term::Exception->new(
+                                    msg => Opal::Term::Str->new(
+                                        value => "Could not find ".($k->name->ident)." in Environment"
+                                    )
+                                )
+                            );
+                        }
+
+                        $self->return_values( $value );
+                    }
                     when ('Define') {
                         my $value = $k->stack_pop();
-                        $k->env->set( $k->name, $value );
+                        $k->env->define( $k->name, $value );
                         $self->return_values( $value );
                     }
                     when ('IfElse') {

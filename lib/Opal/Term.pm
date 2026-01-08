@@ -272,6 +272,14 @@ class Opal::Term::Kontinue::Define :isa(Opal::Term::Kontinue) {
     }
 }
 
+class Opal::Term::Kontinue::Mutate :isa(Opal::Term::Kontinue) {
+    field $name :param :reader;
+
+    method to_string {
+        $self->format( sprintf ':name %s' => $name->to_string )
+    }
+}
+
 class Opal::Term::Kontinue::Return :isa(Opal::Term::Kontinue) {
     field $value :param :reader;
 
@@ -358,9 +366,19 @@ class Opal::Term::Environment :isa(Opal::Term::Hash) {
     method is_root    { not defined $parent }
     method has_parent {     defined $parent }
 
+    method define ($key, $value) {
+        return $self->set($key, $value);
+    }
+
     method lookup ($key) {
         return $self->get($key) if $self->has($key);
         return $self->parent->lookup($key) if $self->has_parent;
+        return;
+    }
+
+    method update ($key, $value) {
+        return $self->set($key, $value) if $self->has($key);
+        return $self->parent->update($key, $value) if $self->has_parent;
         return;
     }
 

@@ -5,6 +5,7 @@ use experimental qw[ class ];
 use importer 'Scalar::Util' => qw[ looks_like_number ];
 
 use Opal::Term;
+use Opal::Term::Parser;
 
 class Opal::Expander {
     field $exprs :param :reader;
@@ -14,7 +15,7 @@ class Opal::Expander {
     }
 
     method expand_expression ($expr) {
-        if ($expr isa Opal::Term::Compound) {
+        if ($expr isa Opal::Term::Parser::Compound) {
             return $self->expand_compound( $expr );
         } else {
             return $self->expand_token( $expr );
@@ -42,7 +43,7 @@ class Opal::Expander {
 
         # expand pairs at compile time,
         # as they are constructive
-        if (scalar @items == 3 && $items[1] isa Opal::Term::Token && $items[1]->source eq '.') {
+        if (scalar @items == 3 && $items[1] isa Opal::Term::Parser::Token && $items[1]->source eq '.') {
             my ($fst, $dot, $snd) = @items;
             return Opal::Term::Pair->new(
                 fst => $self->expand_expression($fst),
@@ -55,11 +56,11 @@ class Opal::Expander {
 
         # expand quoted lists ...
         unshift @list => Opal::Term::Sym->new( ident => 'quote' )
-            if $compound->from->source eq "'";
+            if $compound->open->source eq "'";
 
         # expand hashes ...
         unshift @list => Opal::Term::Sym->new( ident => 'hash' )
-            if $compound->from->source eq "%(";
+            if $compound->open->source eq "%(";
 
         # otherwise it is a list ...
         return Opal::Term::List->new( items => \@list );

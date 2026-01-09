@@ -3,6 +3,8 @@ use v5.42;
 use experimental qw[ class switch try ];
 
 use Opal::Term;
+use Opal::Term::Kontinue;
+use Opal::Term::Runtime;
 
 class Opal::Machine {
     field $program :param :reader;

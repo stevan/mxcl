@@ -7,6 +7,7 @@ use Test::More;
 use Data::Dumper qw[ Dumper ];
 use Carp         qw[ confess ];
 
+use Opal::Tokenizer;
 use Opal::Parser;
 use Opal::Expander;
 use Opal::Machine;
@@ -41,19 +42,6 @@ my $source = q[
 
 ];
 
-$source = q[
-
-    (def X 10)
-
-    (defun set-X (x) (set! X x))
-
-    (set-X 100)
-
-    (let (X "hey") X)
-
-    X
-
-];
 
 
 my $env = Opal::Term::Environment->new(entries => {
@@ -248,11 +236,14 @@ my $env = Opal::Term::Environment->new(entries => {
     ),
 });
 
-my $parser   = Opal::Parser->new;
-my @exprs    = $parser->parse($source);
-my $expander = Opal::Expander->new( exprs => \@exprs );
-my @terms    = $expander->expand;
+my $tokenizer = Opal::Tokenizer->new( source => $source );
+my @tokens    = $tokenizer->tokenize;
+my $parser    = Opal::Parser->new( tokens => \@tokens );
+my @exprs     = $parser->parse($source);
+my $expander  = Opal::Expander->new( exprs => \@exprs );
+my @terms     = $expander->expand;
 
+say join "\n" => map { $_->to_string } @tokens;
 say join "\n" => map { $_->to_string } @exprs;
 say join "\n" => map { $_->to_string } @terms;
 

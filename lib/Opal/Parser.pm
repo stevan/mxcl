@@ -7,25 +7,14 @@ use importer 'Carp' => qw[ confess ];
 use IO::Scalar;
 
 use Opal::Term;
+use Opal::Term::Parser;
 
 class Opal::Parser {
-    field @tokens;
+    field $tokens :param :reader;
 
-    method parse ($input) {
-        my $source = $self->coerce_input($input);
-
-        while (defined(my $line = $source->getline)) {
-            # TODO - add comment stripping
-            my @chunks = $self->tokenize( $line );
-            push @tokens => map Opal::Term::Token->new( value => $_ ), @chunks;
-        }
-
-        return $self->parse_statements;
-    }
-
-    method parse_statements {
+    method parse {
         my @exprs;
-        while (@tokens) {
+        while (@$tokens) {
             my $expr = $self->parse_expression;
             push @exprs => $expr;
         }
@@ -33,15 +22,17 @@ class Opal::Parser {
     }
 
     method parse_expression {
-        my $token = shift @tokens;
+        my $token = shift @$tokens;
         #say "parse_expression ".$token->to_string;
-        return $self->parse_compound(Opal::Term::Compound->new( from => $token ))
+        return $self->parse_compound(Opal::Term::Parser::Compound->new( open => $token ))
             if $token->value eq '('
-            || $token->value eq '%(';
+            || $token->value eq '%('
+            || $token->value eq '{'
+            || $token->value eq '[';
 
         if ($token->value eq "'") {
-            return Opal::Term::Compound->new(
-                from  => $token,
+            return Opal::Term::Parser::Compound->new(
+                open  => $token,
                 items => [ $self->parse_expression ]
             );
         }
@@ -51,46 +42,19 @@ class Opal::Parser {
 
     method parse_compound ( $compound ) {
         #say "parse_compound ".$compound->to_string;
-        if ($tokens[0]->value eq ')') {
-            shift @tokens;
+        if ($tokens->[0]->value eq ')'
+        ||  $tokens->[0]->value eq ']'
+        ||  $tokens->[0]->value eq '}') {
+            # TODO - ensure that the ending token
+            # is of the same type as the starting
+            # token, to make sure they are balanced
+            my $close = shift @$tokens;
+            $compound->close = $close;
             return $compound;
         }
         #say "... parse_expression ";
         my $expr = $self->parse_expression;
         #say "... parse_compound EXPR:".$expr->to_string;
         return $self->parse_compound( $compound->append( $expr ) );
-    }
-
-    method coerce_input ($source) {
-        $source = IO::Scalar->new( \(my $src = "${source}") )
-            unless blessed $source;
-
-        Opal::Term::Exception->throw("Expected either a string, or an IO::Handle, not $source")
-            unless $source isa IO::Handle;
-
-        return $source;
-    }
-
-    method tokenize ($source) {
-        my @chunked = grep defined, split /(\'|\%\(|\(|\)|\s+)/ => $source;
-        my @assembled;
-        while (@chunked) {
-            my $chunk = shift @chunked;
-            if ($chunk =~ /^\"/) {
-                my $string = $chunk;
-
-                while (@chunked) {
-                    last if $string =~ /\"$/;
-                    $string .= shift @chunked;
-                }
-
-                Opal::Term::Exception->throw("Unterminated string")
-                    if scalar @chunked == 0 && $string =~ /\"$/;
-
-                $chunk = $string;
-            }
-            push @assembled => $chunk unless $chunk =~ /^\s*$/;
-        }
-        return @assembled;
     }
 }

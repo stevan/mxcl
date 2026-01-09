@@ -39,7 +39,17 @@ my $source = q[
 
 ];
 
-my $result = Opal::Strand->new->load($source)->run;
+my $kont = Opal::Strand->new->load($source)->run;
+isa_ok($kont, 'Opal::Term::Kontinue::Host');
 
-say "RESULT is ", $result->to_string;
+is($kont->effect, 'SYS.exit', '... expected normal exit');
 
+my ($list) = $kont->spill_stack();
+
+is_deeply(
+    [ map $_->value, $list->uncons ],
+    [ (30) x $list->length ],
+    '... expected everything to be 30'
+);
+
+done_testing;

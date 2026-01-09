@@ -62,9 +62,9 @@ class Opal::Machine {
         while (@$queue) {
             $ticks++;
             my $k = pop @$queue;
-            warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
-            warn "KONT :=> $k\n";
-            warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
+            #warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
+            #warn "KONT :=> $k\n";
+            #warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
             try {
                 given ($k->kind) {
                     when ('Host') {

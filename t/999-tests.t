@@ -7,15 +7,21 @@ use Test::More;
 use Data::Dumper qw[ Dumper ];
 use Carp         qw[ confess ];
 
-use Opal::Term;
-use Opal::Tokenizer;
-use Opal::Parser;
-use Opal::Expander;
-use Opal::Machine;
+use Opal::Strand;
 
-my $source = q/
+my $source = q[
 
-    (10 20 (30 50)100)
+    (+ 10 20)
 
-/;
+];
 
+my $kont = Opal::Strand->new->load($source)->run;
+isa_ok($kont, 'Opal::Term::Kontinue::Host');
+
+is($kont->effect, 'SYS.exit', '... expected normal exit');
+
+my ($result) = $kont->spill_stack();
+
+say "GOT : ${result}";
+
+done_testing;

@@ -3,10 +3,6 @@
 use v5.42;
 use experimental qw[ class ];
 
-use importer 'Carp' => qw[ confess ];
-
-use IO::Scalar;
-
 use Opal::Term;
 use Opal::Term::Parser;
 
@@ -32,16 +28,14 @@ class Opal::Tokenizer {
                 $char_at = pos($source);
 
                 push @tokens => Opal::Term::Parser::Token->new(
-                    value    => $match,
-                    location => Opal::Term::Parser::Location->new(
-                        start => $start,
-                        end   => $char_at - $line_at,
-                        line  => $line_no,
-                        pos   => pos($source)
-                    )
+                    value => $match,
+                    start => $start,
+                    end   => $char_at - $line_at,
+                    line  => $line_no,
+                    pos   => pos($source)
                 );
             }
         }
-        return @tokens;
+        return \@tokens;
     }
 }

@@ -2,10 +2,6 @@
 use v5.42;
 use experimental qw[ class ];
 
-use importer 'Carp' => qw[ confess ];
-
-use IO::Scalar;
-
 use Opal::Term;
 use Opal::Term::Parser;
 
@@ -18,7 +14,7 @@ class Opal::Parser {
             my $expr = $self->parse_expression;
             push @exprs => $expr;
         }
-        return @exprs;
+        return \@exprs;
     }
 
     method parse_expression {

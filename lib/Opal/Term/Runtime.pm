@@ -8,12 +8,12 @@ use Opal::Term;
 # Runtime Objects
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Unit :isa(Opal::Term::Nil) {
+class Opal::Term::Runtime::Unit :isa(Opal::Term::Nil) {
     method to_string { '(unit)' }
     method to_bool   { false    }
 }
 
-class Opal::Term::Exception :isa(Opal::Term) {
+class Opal::Term::Runtime::Exception :isa(Opal::Term) {
     field $msg :param :reader;
 
     sub throw ($class, $msg) {
@@ -25,7 +25,7 @@ class Opal::Term::Exception :isa(Opal::Term) {
     }
 }
 
-class Opal::Term::Environment :isa(Opal::Term::Hash) {
+class Opal::Term::Runtime::Environment :isa(Opal::Term::Hash) {
     field $parent :param :reader = undef;
 
     method is_root    { not defined $parent }

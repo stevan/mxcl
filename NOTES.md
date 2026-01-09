@@ -2,6 +2,17 @@
 # NOTES
 <!----------------------------------------------------------------------------->
 
+## Opal
+
+- need top-level interpreter
+- HOST handling
+
+## Environment 
+
+- make it composable, with capabilities
+
+## Datatypes
+
 - Add Arrays
     - `@[ 10 20 30 ]`
     - indexable, mutable
@@ -16,7 +27,8 @@
 
 - Add Blocks
     - `{ ... }`
-    - converted into `(block ...)`
+    - converted into `(do ...)`
+    - no new objects, just syntactic sugar
 
 
 

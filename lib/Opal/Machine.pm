@@ -27,10 +27,6 @@ class Opal::Machine {
         ];
     }
 
-    method run {
-        return $self->run_until_host;
-    }
-
     method return_values (@values) {
         $queue->[-1]->stack_push( @values )
     }
@@ -43,7 +39,7 @@ class Opal::Machine {
                 if ( not defined $value ) {
                     return Opal::Term::Kontinue::Throw->new(
                         env       => $env,
-                        exception => Opal::Term::Exception->new(
+                        exception => Opal::Term::Runtime::Exception->new(
                             msg => Opal::Term::Str->new(
                                 value => "Could not find ".($expr->ident)." in Environment"
                             )
@@ -84,7 +80,7 @@ class Opal::Machine {
                         if (!$k->env->update( $k->name, $value )) {
                             push @$queue => Opal::Term::Kontinue::Throw->new(
                                 env       => $env,
-                                exception => Opal::Term::Exception->new(
+                                exception => Opal::Term::Runtime::Exception->new(
                                     msg => Opal::Term::Str->new(
                                         value => "Could not find ".($k->name->ident)." in Environment"
                                     )
@@ -132,7 +128,7 @@ class Opal::Machine {
                     }
                     when ('Catch') {
                         my $results = $k->stack_pop();
-                        if ($results isa Opal::Term::Exception) {
+                        if ($results isa Opal::Term::Runtime::Exception) {
                             my $catcher = Opal::Term::Kontinue::Apply::Applicative->new(
                                 env  => $k->env,
                                 call => $k->handler,
@@ -200,7 +196,7 @@ class Opal::Machine {
                             }
                         }
                         else {
-                            Opal::Term::Exception->throw("WTF, what is $call in Apply::Expr");
+                            Opal::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Expr");
                         }
                     }
                     when ('Apply::Operative') {
@@ -209,10 +205,10 @@ class Opal::Machine {
                             push @$queue => $call->body->( $k->env, $k->args->uncons )->@*;
                         }
                         elsif ($call isa Opal::Term::FExpr) {
-                            Opal::Term::Exception->throw('TODO - user-defined FExpr');
+                            Opal::Term::Runtime::Exception->throw('TODO - user-defined FExpr');
                         }
                         else {
-                            Opal::Term::Exception->throw("WTF, what is $call in Apply::Applicative");
+                            Opal::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
                         }
                     }
                     when ('Apply::Applicative') {
@@ -241,16 +237,16 @@ class Opal::Machine {
                             );
                         }
                         else {
-                            Opal::Term::Exception->throw("WTF, what is $call in Apply::Applicative");
+                            Opal::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
                         }
                     }
                     default {
-                        Opal::Term::Exception->throw("UNKNOWN CONTINUATION $k");
+                        Opal::Term::Runtime::Exception->throw("UNKNOWN CONTINUATION $k");
                     }
                 }
             } catch ($e) {
-                unless ($e isa Opal::Term::Exception) {
-                    $e = Opal::Term::Exception->new(
+                unless ($e isa Opal::Term::Runtime::Exception) {
+                    $e = Opal::Term::Runtime::Exception->new(
                         msg => Opal::Term::Str->new( value => "$e" )
                     );
                 }
@@ -262,7 +258,7 @@ class Opal::Machine {
             }
         }
 
-        Opal::Term::Exception->throw("This should never happen, we should always return via HOST");
+        Opal::Term::Runtime::Exception->throw("This should never happen, we should always return via HOST");
     }
 
 }

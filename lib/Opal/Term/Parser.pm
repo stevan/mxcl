@@ -9,20 +9,11 @@ use Opal::Term;
 # Parser Terms
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Parser::Location :isa(Opal::Term) {
-    field $start :param = -1;
-    field $end   :param = -1;
-    field $line  :param = -1;
-    field $pos   :param = -1;
-
-    method start :lvalue { $start }
-    method end   :lvalue { $end   }
-    method line  :lvalue { $line  }
-    method pos   :lvalue { $pos   }
-}
-
 class Opal::Term::Parser::Token :isa(Opal::Term::Str) {
-    field $location :param :reader = undef;
+    field $start :param :reader = -1;
+    field $end   :param :reader = -1;
+    field $line  :param :reader = -1;
+    field $pos   :param :reader = -1;
 
     method source { $self->value }
 

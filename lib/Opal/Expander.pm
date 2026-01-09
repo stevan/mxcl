@@ -11,7 +11,7 @@ class Opal::Expander {
     field $exprs :param :reader;
 
     method expand {
-        map $self->expand_expression($_), @$exprs
+        return +[ map $self->expand_expression($_), @$exprs ]
     }
 
     method expand_expression ($expr) {

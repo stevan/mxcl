@@ -18,7 +18,7 @@ class Opal::Tokenizer {
         my $line_no = 0;
         my $line_at = 0;
         my $char_at = 0;
-        while ($source =~ m/(\'|\%\{|\}|\@\[|\]|\(|\)|\;|"(?:[^"\\]|\\.)*"|\s|[^\s\(\)';]+)/g) {
+        while ($source =~ m/(\'|\%\{|\{|\}|\@\[|\[|\]|\(|\)|\;|"(?:[^"\\]|\\.)*"|\s|[^\s\(\)\'\;\{\}\[\]]+)/g) {
             my $match = $1;
             if ($match eq "\n") {
                 $line_no++;

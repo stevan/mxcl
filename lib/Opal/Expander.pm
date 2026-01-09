@@ -59,8 +59,8 @@ class Opal::Expander {
             if $compound->open->source eq "'";
 
         # expand hashes ...
-        unshift @list => Opal::Term::Sym->new( ident => 'hash' )
-            if $compound->open->source eq "%(";
+        unshift @list => Opal::Term::Sym->new( ident => 'make-hash' )
+            if $compound->open->source eq "%{";
 
         # otherwise it is a list ...
         return Opal::Term::List->new( items => \@list );

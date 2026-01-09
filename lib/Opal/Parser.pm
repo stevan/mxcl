@@ -26,8 +26,9 @@ class Opal::Parser {
         #say "parse_expression ".$token->to_string;
         return $self->parse_compound(Opal::Term::Parser::Compound->new( open => $token ))
             if $token->value eq '('
-            || $token->value eq '%('
+            || $token->value eq '%{'
             || $token->value eq '{'
+            || $token->value eq '@['
             || $token->value eq '[';
 
         if ($token->value eq "'") {

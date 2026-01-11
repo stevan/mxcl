@@ -37,14 +37,14 @@ class Opal::Expander {
     }
 
     method expand_compound ($compound) {
-        my @items = $compound->uncons;
+        my @elements = $compound->elements->@*;
         # expand empty lists
-        return Opal::Term::Nil->new if scalar @items == 0;
+        return Opal::Term::Nil->new if scalar @elements == 0;
 
         # expand pairs at compile time,
         # as they are constructive
-        if (scalar @items == 3 && $items[1] isa Opal::Term::Parser::Token && $items[1]->source eq '.') {
-            my ($fst, $dot, $snd) = @items;
+        if (scalar @elements == 3 && $elements[1] isa Opal::Term::Parser::Token && $elements[1]->source eq '.') {
+            my ($fst, $dot, $snd) = @elements;
             return Opal::Term::Pair->new(
                 fst => $self->expand_expression($fst),
                 snd => $self->expand_expression($snd),
@@ -52,15 +52,27 @@ class Opal::Expander {
         }
 
         # ...
-        my @list = map $self->expand_expression( $_ ), @items;
+        my @list = map $self->expand_expression( $_ ), @elements;
 
         # expand quoted lists ...
         unshift @list => Opal::Term::Sym->new( ident => 'quote' )
             if $compound->open->source eq "'";
 
+        # expand blocks ...
+        unshift @list => Opal::Term::Sym->new( ident => 'do' )
+            if $compound->open->source eq "{";
+
         # expand hashes ...
-        unshift @list => Opal::Term::Sym->new( ident => 'make-hash' )
+        unshift @list => Opal::Term::Sym->new( ident => 'hash' )
             if $compound->open->source eq "%{";
+
+        # expand tuples ...
+        unshift @list => Opal::Term::Sym->new( ident => 'tuple' )
+            if $compound->open->source eq "[";
+
+        # expand arrays ...
+        unshift @list => Opal::Term::Sym->new( ident => 'array' )
+            if $compound->open->source eq "@[";
 
         # otherwise it is a list ...
         return Opal::Term::List->new( items => \@list );

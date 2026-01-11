@@ -9,31 +9,43 @@ use Opal::Term;
 # Parser Terms
 # ------------------------------------------------------------------------------
 
+class Opal::Term::Parser::Exception :isa(Opal::Term::Exception) {}
+
 class Opal::Term::Parser::Token :isa(Opal::Term::Str) {
     field $start :param :reader = -1;
     field $end   :param :reader = -1;
     field $line  :param :reader = -1;
     field $pos   :param :reader = -1;
 
+    sub build ($class, $source, $start, $end, $line, $pos) {
+        $class->new(
+            value => $source,
+            start => $start,
+            end   => $end,
+            line  => $line,
+            pos   => $pos,
+        )
+    }
+
     method source { $self->value }
 
-    method to_string {
+    method stringify {
         sprintf '<token %s>' => $self->value
     }
 }
 
-class Opal::Term::Parser::Compound :isa(Opal::Term::List) {
+class Opal::Term::Parser::Compound :isa(Opal::Term::Array) {
     field $open  :param = undef;
     field $close :param = undef;
 
     method open  :lvalue { $open  }
     method close :lvalue { $close }
 
-    method to_string {
+    method stringify {
         sprintf '<compound %s:[%s]:%s>'
-            => $open->to_string,
-               (join ' ' => map $_->to_string, $self->uncons),
-               $close->to_string;
+            => $open->stringify,
+               (join ' ' => map $_->stringify, $self->uncons),
+               $close->stringify;
     }
 }
 

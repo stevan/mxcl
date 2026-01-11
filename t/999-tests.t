@@ -11,7 +11,15 @@ use Opal::Strand;
 
 my $source = q[
 
-    (+ 10 20)
+    (list
+        [ 10 20 [ 30 40 ] ]
+        @[ 10 [ 20 30 ] 200 @[1 2 3] ]
+        %{
+            :foo 10
+            :bar [ 20 30 ]
+            :gorch @[ 0 0 0 0 ]
+        }
+    )
 
 ];
 
@@ -22,6 +30,6 @@ is($kont->effect, 'SYS.exit', '... expected normal exit');
 
 my ($result) = $kont->spill_stack();
 
-say "GOT : ${result}";
+say sprintf '%s : <%s>' => $_->stringify, blessed $_ foreach $result isa Opal::Term::List ? $result->uncons : $result;
 
 done_testing;

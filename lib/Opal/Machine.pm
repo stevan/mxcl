@@ -4,7 +4,8 @@ use experimental qw[ class switch try ];
 
 use Opal::Term;
 use Opal::Term::Kontinue;
-use Opal::Term::Runtime;
+
+class Opal::Term::Runtime::Exception :isa(Opal::Term::Exception) {}
 
 class Opal::Machine {
     field $program :param :reader;
@@ -62,9 +63,9 @@ class Opal::Machine {
         while (@$queue) {
             $ticks++;
             my $k = pop @$queue;
-            #warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
-            #warn "KONT :=> $k\n";
-            #warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
+            warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
+            warn "KONT :=> $k\n";
+            warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
             try {
                 given ($k->kind) {
                     when ('Host') {
@@ -97,7 +98,7 @@ class Opal::Machine {
                     }
                     when ('IfElse') {
                         my $condition = $k->stack_pop();
-                        if ($condition->to_bool) {
+                        if ($condition->boolify) {
                             push @$queue =>
                                 # AND short/circuit
                                 refaddr $k->condition == refaddr $k->if_true

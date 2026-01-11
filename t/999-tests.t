@@ -11,7 +11,7 @@ use Opal::Strand;
 
 my $source = q[
 
-    (list
+    (list/new
         [ 10 20 [ 30 40 ] ]
         @[ 10 [ 20 30 ] 200 @[1 2 3] ]
         %{

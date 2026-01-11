@@ -15,7 +15,7 @@ my $source = q[
 
     (defun adder (x y) (+ x y))
 
-    (list
+    (list/new
         30
         thirty
         (+ 10 20)
@@ -24,8 +24,8 @@ my $source = q[
         (+ (* 2 5) (* 4 (+ 3 2)))
         ((lambda (x y) (+ x y)) 10 20)
         (adder 10 20)
-        (first (list 30 20 10))
-        (first (rest (list 40 30 20 10)))
+        (first (list/new 30 20 10))
+        (first (rest (list/new 40 30 20 10)))
         (try (+ 10 20) (catch (e) e))
         (+ 10 (or false 20))
         (+ 10 (and true 20))

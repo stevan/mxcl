@@ -33,7 +33,7 @@ class Opal::Machine {
     }
 
     method evaluate_term ($expr, $env) {
-        given ($expr->kind) {
+        given ($expr->type) {
             when ('Sym') {
                 my $value = $env->lookup( $expr );
 
@@ -67,7 +67,7 @@ class Opal::Machine {
             warn "KONT :=> $k\n";
             warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
             try {
-                given ($k->kind) {
+                given ($k->type) {
                     when ('Host') {
                         return $k
                     }

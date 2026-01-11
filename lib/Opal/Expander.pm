@@ -63,15 +63,15 @@ class Opal::Expander {
             if $compound->open->source eq "{";
 
         # expand hashes ...
-        unshift @list => Opal::Term::Sym->new( ident => 'hash' )
+        unshift @list => Opal::Term::Sym->new( ident => 'hash/new' )
             if $compound->open->source eq "%{";
 
         # expand tuples ...
-        unshift @list => Opal::Term::Sym->new( ident => 'tuple' )
+        unshift @list => Opal::Term::Sym->new( ident => 'tuple/new' )
             if $compound->open->source eq "[";
 
         # expand arrays ...
-        unshift @list => Opal::Term::Sym->new( ident => 'array' )
+        unshift @list => Opal::Term::Sym->new( ident => 'array/new' )
             if $compound->open->source eq "@[";
 
         # otherwise it is a list ...

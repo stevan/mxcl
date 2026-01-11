@@ -14,7 +14,7 @@ class Opal::Term::Kontinue :isa(Opal::Term) {
 
     sub build ($class, %args) { $class->new( %args ) }
 
-    method kind { __CLASS__ =~ s/^Opal\:\:Term\:\:Kontinue\:\://r }
+    method type { __CLASS__ =~ s/^Opal\:\:Term\:\:Kontinue\:\://r }
 
     method stack_pop       { pop  @$stack }
     method stack_push (@e) { push @$stack => @e }
@@ -25,7 +25,7 @@ class Opal::Term::Kontinue :isa(Opal::Term) {
     }
 
     method format ($msg) {
-        sprintf '(K %s {%s} @[%s] %s)' => $self->kind, $msg, (join ', ' => map $_->stringify, @$stack), $env->stringify;
+        sprintf '(K %s {%s} @[%s] %s)' => $self->type, $msg, (join ', ' => map $_->stringify, @$stack), $env->stringify;
     }
 
     method stringify { $self->format('') }

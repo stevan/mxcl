@@ -9,7 +9,7 @@ class Opal::Term {
 
     method identity { $self }
 
-    method kind { __CLASS__ =~ s/^Opal\:\:Term\:\://r }
+    method type { __CLASS__ =~ s/^Opal\:\:Term\:\://r }
 
     sub CREATE ($class, @args) { ... }
 

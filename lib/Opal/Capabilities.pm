@@ -6,7 +6,7 @@ use Opal::Term;
 use Opal::Term::Kontinue;
 use Opal::Machine;
 
-class Opal::Environment {
+class Opal::Capabilities {
 
     # --------------------------------------------------------------------------
     # helpers ...
@@ -72,7 +72,7 @@ class Opal::Environment {
     #       - hash/exists hash/keys hash/values
     # --------------------------------------------------------------------------
 
-    sub initialize ($class) {
+    sub create_core_environment ($class) {
         Opal::Term::Environment->CREATE(
             # ----------------------------------------------------------------------
             # Type Predicates

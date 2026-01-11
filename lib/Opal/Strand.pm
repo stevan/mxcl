@@ -6,7 +6,7 @@ use Opal::Tokenizer;
 use Opal::Parser;
 use Opal::Expander;
 use Opal::Machine;
-use Opal::Environment;
+use Opal::Capabilities;
 
 class Opal::Strand {
     field $tokenizer :reader;
@@ -20,7 +20,7 @@ class Opal::Strand {
         $expander  = Opal::Expander->new( exprs => $parser->parse );
         $machine   = Opal::Machine->new(
             program => $expander->expand,
-            env     => Opal::Environment->initialize
+            env     => Opal::Capabilities->create_core_environment
         );
         $self;
     }

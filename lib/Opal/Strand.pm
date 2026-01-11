@@ -9,14 +9,14 @@ use Opal::Machine;
 use Opal::Capabilities;
 
 class Opal::Strand {
-    field $capabilities :reader;
+    field $capabilities :reader :param = undef;
     field $tokenizer    :reader;
     field $parser       :reader;
     field $expander     :reader;
     field $machine      :reader;
 
     ADJUST {
-        $capabilities = Opal::Capabilities->new;
+        $capabilities //= Opal::Capabilities->new;
     }
 
     method load ($source) {

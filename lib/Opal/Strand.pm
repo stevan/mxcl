@@ -9,10 +9,15 @@ use Opal::Machine;
 use Opal::Capabilities;
 
 class Opal::Strand {
-    field $tokenizer :reader;
-    field $parser    :reader;
-    field $expander  :reader;
-    field $machine   :reader;
+    field $capabilities :reader;
+    field $tokenizer    :reader;
+    field $parser       :reader;
+    field $expander     :reader;
+    field $machine      :reader;
+
+    ADJUST {
+        $capabilities = Opal::Capabilities->new;
+    }
 
     method load ($source) {
         $tokenizer = Opal::Tokenizer->new( source => $source );
@@ -20,7 +25,7 @@ class Opal::Strand {
         $expander  = Opal::Expander->new( exprs => $parser->parse );
         $machine   = Opal::Machine->new(
             program => $expander->expand,
-            env     => Opal::Capabilities->create_core_environment
+            env     => $capabilities->new_environment
         );
         $self;
     }

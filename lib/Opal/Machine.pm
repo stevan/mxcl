@@ -16,7 +16,6 @@ class Opal::Machine {
 
     ADJUST {
         $ticks = 0;
-        $env   = $env->derive;
         $queue = [
             Opal::Term::Kontinue::Host->new( effect => 'SYS.exit', env => $env ),
             reverse map {

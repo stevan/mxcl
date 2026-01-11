@@ -6,25 +6,23 @@ use Opal::Term;
 use Opal::Term::Kontinue;
 use Opal::Machine;
 
-
-
 class Opal::Environment {
 
+    # --------------------------------------------------------------------------
+    # helpers ...
+    # --------------------------------------------------------------------------
 
     my sub lift_literal_sub ($name, $params, $f, $accepts, $returns) {
-        my $param_count = scalar @$params;
-
-        my $body = sub ($env, @args) {
-            Opal::Term::Runtime::Exception->throw(
-                "Arity Mismatch, expected ${param_count} got ".(scalar @args)." in ${name}"
-            ) if scalar @args != $param_count;
-            $returns->CREATE( $f->( map $_->$accepts, @args ) )
-        };
-
+        my $arity = scalar @$params;
         return Opal::Term::Applicative::Native->CREATE(
             Opal::Term::Key->CREATE( $name ),
             Opal::Term::List->CREATE( map Opal::Term::Key->CREATE( $_ ), @$params ),
-            $body,
+            sub ($env, @args) {
+                Opal::Term::Runtime::Exception->throw(
+                    "Arity Mismatch, expected ${arity} got ".(scalar @args)." in ${name}"
+                ) if scalar @args != $arity;
+                $returns->CREATE( $f->( map $_->$accepts, @args ) )
+            },
         )
     }
 
@@ -62,24 +60,19 @@ class Opal::Environment {
         )
     }
 
+    # --------------------------------------------------------------------------
+    # builder
+    # --------------------------------------------------------------------------
+    # TODO:
+    #   - str/length
+    #   - tuple/size tuple/at
+    #   - array/get array/set! array/length
+    #       - array/push array/pop array/shift array/unshift
+    #   - hash/get hash/set!
+    #       - hash/exists hash/keys hash/values
+    # --------------------------------------------------------------------------
+
     sub initialize ($class) {
-
-        my @TODO = qw[
-            tuple-size tuple-at
-            array-get array-set! length push pop shift unshift
-            hash-get hash-set! exists keys values
-        ];
-
-        my @TTY = qw[
-            print say warn readline
-        ];
-
-        my @IO = qw[
-            -e -f -d -s -x
-            open close read readline slurp write spew
-            opendir closedir readdir
-        ];
-
         Opal::Term::Environment->CREATE(
             # ----------------------------------------------------------------------
             # Type Predicates

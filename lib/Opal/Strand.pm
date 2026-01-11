@@ -31,3 +31,14 @@ class Opal::Strand {
     }
 }
 
+__END__
+
+my @TTY = qw[
+    print say warn readline
+];
+
+my @IO = qw[
+    -e -f -d -s -x
+    open close read readline slurp write spew
+    opendir closedir readdir
+];

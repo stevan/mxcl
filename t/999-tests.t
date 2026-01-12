@@ -11,6 +11,7 @@ use MXCL::Strand;
 
 my $source = q[
 
+    (repl)
 
 ];
 

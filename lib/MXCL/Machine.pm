@@ -2,13 +2,13 @@
 use v5.42;
 use experimental qw[ class switch try ];
 
-use Opal::Term;
-use Opal::Term::Kontinue;
-use Opal::Effect;
+use MXCL::Term;
+use MXCL::Term::Kontinue;
+use MXCL::Effect;
 
-class Opal::Term::Runtime::Exception :isa(Opal::Term::Exception) {}
+class MXCL::Term::Runtime::Exception :isa(MXCL::Term::Exception) {}
 
-class Opal::Machine {
+class MXCL::Machine {
     field $program  :param :reader;
     field $env      :param :reader;
     field $on_exit  :param :reader;
@@ -22,7 +22,7 @@ class Opal::Machine {
         $queue = [
             $on_exit,
             reverse map {
-                Opal::Term::Kontinue::Eval::Expr->new(
+                MXCL::Term::Kontinue::Eval::Expr->new(
                     expr => $_,
                     env  => $env,
                 )
@@ -40,23 +40,23 @@ class Opal::Machine {
                 my $value = $env->lookup( $expr );
 
                 if ( not defined $value ) {
-                    return Opal::Term::Kontinue::Throw->new(
+                    return MXCL::Term::Kontinue::Throw->new(
                         env       => $env,
-                        exception => Opal::Term::Runtime::Exception->new(
-                            msg => Opal::Term::Str->new(
+                        exception => MXCL::Term::Runtime::Exception->new(
+                            msg => MXCL::Term::Str->new(
                                 value => "Could not find ".($expr->ident)." in Environment"
                             )
                         )
                     );
                 }
 
-                return Opal::Term::Kontinue::Return->new( value => $value, env => $env )
+                return MXCL::Term::Kontinue::Return->new( value => $value, env => $env )
             }
             when ('List') {
-                return Opal::Term::Kontinue::Eval::Cons->new( cons => $expr, env => $env )
+                return MXCL::Term::Kontinue::Eval::Cons->new( cons => $expr, env => $env )
             }
             default {
-                return Opal::Term::Kontinue::Return->new( value => $expr, env => $env )
+                return MXCL::Term::Kontinue::Return->new( value => $expr, env => $env )
             }
         }
     }
@@ -86,10 +86,10 @@ class Opal::Machine {
                         my $name  = $k->name;
 
                         if (!$k->env->update( $k->name, $value )) {
-                            push @$queue => Opal::Term::Kontinue::Throw->new(
+                            push @$queue => MXCL::Term::Kontinue::Throw->new(
                                 env       => $env,
-                                exception => Opal::Term::Runtime::Exception->new(
-                                    msg => Opal::Term::Str->new(
+                                exception => MXCL::Term::Runtime::Exception->new(
+                                    msg => MXCL::Term::Str->new(
                                         value => "Could not find ".($k->name->ident)." in Environment"
                                     )
                                 )
@@ -109,19 +109,19 @@ class Opal::Machine {
                             push @$queue =>
                                 # AND short/circuit
                                 refaddr $k->condition == refaddr $k->if_true
-                                    ? Opal::Term::Kontinue::Return->new( value => $condition, env => $k->env )
+                                    ? MXCL::Term::Kontinue::Return->new( value => $condition, env => $k->env )
                                     : $self->evaluate_term( $k->if_true, $k->env );
                         } else {
                             push @$queue =>
                                 # OR short/circuit
                                 refaddr $k->condition == refaddr $k->if_false
-                                    ? Opal::Term::Kontinue::Return->new( value => $condition, env => $k->env )
+                                    ? MXCL::Term::Kontinue::Return->new( value => $condition, env => $k->env )
                                     : $self->evaluate_term( $k->if_false, $k->env );
                         }
                     }
                     when ('Throw') {
                         while (@$queue) {
-                            if ($queue->[-1] isa Opal::Term::Kontinue::Catch) {
+                            if ($queue->[-1] isa MXCL::Term::Kontinue::Catch) {
                                 $self->return_values( $k->exception );
                                 break;
                             } else {
@@ -136,15 +136,15 @@ class Opal::Machine {
                     }
                     when ('Catch') {
                         my $results = $k->stack_pop();
-                        if ($results isa Opal::Term::Runtime::Exception) {
-                            my $catcher = Opal::Term::Kontinue::Apply::Applicative->new(
+                        if ($results isa MXCL::Term::Runtime::Exception) {
+                            my $catcher = MXCL::Term::Kontinue::Apply::Applicative->new(
                                 env  => $k->env,
                                 call => $k->handler,
                             );
                             $catcher->stack_push( $results );
                             push @$queue => $catcher;
                         } else {
-                            push @$queue => Opal::Term::Kontinue::Return->new(
+                            push @$queue => MXCL::Term::Kontinue::Return->new(
                                 env   => $k->env,
                                 value => $results,
                             );
@@ -160,7 +160,7 @@ class Opal::Machine {
                     when ('Eval::Cons') {
                         my $list  = $k->cons;
                         push @$queue => (
-                            Opal::Term::Kontinue::Apply::Expr->new(
+                            MXCL::Term::Kontinue::Apply::Expr->new(
                                 env  => $k->env,
                                 args => $list->rest
                             ),
@@ -170,8 +170,8 @@ class Opal::Machine {
                     when ('Eval::Cons::Rest') {
                         my $list = $k->rest;
                         my $rest = $list->rest;
-                        unless ($rest isa Opal::Term::Nil) {
-                            push @$queue => Opal::Term::Kontinue::Eval::Cons::Rest->new(
+                        unless ($rest isa MXCL::Term::Nil) {
+                            push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
                                 env  => $k->env,
                                 rest => $rest
                             );
@@ -183,51 +183,51 @@ class Opal::Machine {
                     when ('Apply::Expr') {
                         my $call = $k->stack_pop();
 
-                        if ($call isa Opal::Term::Operative) {
-                            push @$queue => Opal::Term::Kontinue::Apply::Operative->new(
+                        if ($call isa MXCL::Term::Operative) {
+                            push @$queue => MXCL::Term::Kontinue::Apply::Operative->new(
                                 env  => $k->env,
                                 call => $call,
                                 args => $k->args,
                             );
                         }
-                        elsif ($call isa Opal::Term::Applicative) {
-                            push @$queue => Opal::Term::Kontinue::Apply::Applicative->new(
+                        elsif ($call isa MXCL::Term::Applicative) {
+                            push @$queue => MXCL::Term::Kontinue::Apply::Applicative->new(
                                 env  => $k->env,
                                 call => $call,
                             );
 
-                            unless ($k->args isa Opal::Term::Nil) {
-                                push @$queue => Opal::Term::Kontinue::Eval::Cons::Rest->new(
+                            unless ($k->args isa MXCL::Term::Nil) {
+                                push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
                                     env  => $k->env,
                                     rest => $k->args
                                 );
                             }
                         }
                         else {
-                            Opal::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Expr");
+                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Expr");
                         }
                     }
                     when ('Apply::Operative') {
                         my $call = $k->call;
-                        if ($call isa Opal::Term::Operative::Native) {
+                        if ($call isa MXCL::Term::Operative::Native) {
                             push @$queue => $call->body->( $k->env, $k->args->uncons )->@*;
                         }
-                        elsif ($call isa Opal::Term::FExpr) {
-                            Opal::Term::Runtime::Exception->throw('TODO - user-defined FExpr');
+                        elsif ($call isa MXCL::Term::FExpr) {
+                            MXCL::Term::Runtime::Exception->throw('TODO - user-defined FExpr');
                         }
                         else {
-                            Opal::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
+                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
                         }
                     }
                     when ('Apply::Applicative') {
                         my $call = $k->call;
-                        if ($call isa Opal::Term::Applicative::Native) {
-                            push @$queue => Opal::Term::Kontinue::Return->new(
+                        if ($call isa MXCL::Term::Applicative::Native) {
+                            push @$queue => MXCL::Term::Kontinue::Return->new(
                                 env   => $k->env,
                                 value => $call->body->( $k->env, $k->spill_stack() ),
                             );
                         }
-                        elsif ($call isa Opal::Term::Lambda) {
+                        elsif ($call isa MXCL::Term::Lambda) {
                             my $lambda = $k->call;
 
                             my @params = $lambda->params->uncons;
@@ -239,34 +239,34 @@ class Opal::Machine {
                             }
 
                             my $local = $lambda->env->derive(%bindings);
-                            push @$queue => Opal::Term::Kontinue::Eval::Expr->new(
+                            push @$queue => MXCL::Term::Kontinue::Eval::Expr->new(
                                 env  => $local,
                                 expr => $lambda->body
                             );
                         }
                         else {
-                            Opal::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
+                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
                         }
                     }
                     default {
-                        Opal::Term::Runtime::Exception->throw("UNKNOWN CONTINUATION $k");
+                        MXCL::Term::Runtime::Exception->throw("UNKNOWN CONTINUATION $k");
                     }
                 }
             } catch ($e) {
-                unless ($e isa Opal::Term::Runtime::Exception) {
-                    $e = Opal::Term::Runtime::Exception->new(
-                        msg => Opal::Term::Str->new( value => "$e" )
+                unless ($e isa MXCL::Term::Runtime::Exception) {
+                    $e = MXCL::Term::Runtime::Exception->new(
+                        msg => MXCL::Term::Str->new( value => "$e" )
                     );
                 }
 
-                push @$queue => Opal::Term::Kontinue::Throw->new(
+                push @$queue => MXCL::Term::Kontinue::Throw->new(
                     env       => $k->env,
                     exception => $e
                 );
             }
         }
 
-        Opal::Term::Runtime::Exception->throw("This should never happen, we should always return via HOST");
+        MXCL::Term::Runtime::Exception->throw("This should never happen, we should always return via HOST");
     }
 
 }

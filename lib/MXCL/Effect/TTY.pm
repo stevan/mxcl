@@ -2,12 +2,12 @@
 use v5.42;
 use experimental qw[ class switch ];
 
-use Opal::Term;
-use Opal::Term::Kontinue;
-use Opal::Builtins;
-use Opal::Effect;
+use MXCL::Term;
+use MXCL::Term::Kontinue;
+use MXCL::Builtins;
+use MXCL::Effect;
 
-class Opal::Effect::TTY :isa(Opal::Effect) {
+class MXCL::Effect::TTY :isa(MXCL::Effect) {
     field $input  :param :reader = undef;
     field $output :param :reader = undef;
     field $error  :param :reader = undef;
@@ -22,7 +22,7 @@ class Opal::Effect::TTY :isa(Opal::Effect) {
         my sub prepare_output () {
             map {
                 # YUCK
-                $_ isa Opal::Term::Str ? $_->value : $_->stringify
+                $_ isa MXCL::Term::Str ? $_->value : $_->stringify
             } $k->spill_stack()
         }
 
@@ -30,27 +30,27 @@ class Opal::Effect::TTY :isa(Opal::Effect) {
             when ('print') {
                 $output->print(prepare_output());
                 return +[
-                    Opal::Term::Kontinue::Return->new(
+                    MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
-                        value => Opal::Term::Unit->new
+                        value => MXCL::Term::Unit->new
                     )
                 ]
             }
             when ('say') {
                 $output->print(prepare_output(), "\n");
                 return +[
-                    Opal::Term::Kontinue::Return->new(
+                    MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
-                        value => Opal::Term::Unit->new
+                        value => MXCL::Term::Unit->new
                     )
                 ]
             }
             when ('warn') {
                 $error->print(prepare_output(), "\n");
                 return +[
-                    Opal::Term::Kontinue::Return->new(
+                    MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
-                        value => Opal::Term::Unit->new
+                        value => MXCL::Term::Unit->new
                     )
                 ]
             }
@@ -58,9 +58,9 @@ class Opal::Effect::TTY :isa(Opal::Effect) {
                 my $line = $input->getline;
                 chomp($line);
                 return +[
-                    Opal::Term::Kontinue::Return->new(
+                    MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
-                        value => Opal::Term::Str->CREATE( $line )
+                        value => MXCL::Term::Str->CREATE( $line )
                     )
                 ]
             }
@@ -72,48 +72,48 @@ class Opal::Effect::TTY :isa(Opal::Effect) {
 
     method provides {
         return +[
-            Opal::Builtins::lift_operative('print', [qw[ ...args ]], sub ($env, @args) {
+            MXCL::Builtins::lift_operative('print', [qw[ ...args ]], sub ($env, @args) {
                 return [
-                    Opal::Term::Kontinue::Host->new(
+                    MXCL::Term::Kontinue::Host->new(
                         env    => $env,
                         effect => $self,
                         config => { operation => 'print' }
                     ),
-                    Opal::Term::Kontinue::Eval::Cons::Rest->new(
-                        rest => Opal::Term::List->CREATE( @args ),
+                    MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                        rest => MXCL::Term::List->CREATE( @args ),
                         env  => $env
                     )
                 ]
             }),
-            Opal::Builtins::lift_operative('say', [qw[ ...args ]], sub ($env, @args) {
+            MXCL::Builtins::lift_operative('say', [qw[ ...args ]], sub ($env, @args) {
                 return [
-                    Opal::Term::Kontinue::Host->new(
+                    MXCL::Term::Kontinue::Host->new(
                         env    => $env,
                         effect => $self,
                         config => { operation => 'say' }
                     ),
-                    Opal::Term::Kontinue::Eval::Cons::Rest->new(
-                        rest => Opal::Term::List->CREATE( @args ),
+                    MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                        rest => MXCL::Term::List->CREATE( @args ),
                         env  => $env
                     )
                 ]
             }),
-            Opal::Builtins::lift_operative('warn', [qw[ ...args ]], sub ($env, @args) {
+            MXCL::Builtins::lift_operative('warn', [qw[ ...args ]], sub ($env, @args) {
                 return [
-                    Opal::Term::Kontinue::Host->new(
+                    MXCL::Term::Kontinue::Host->new(
                         env    => $env,
                         effect => $self,
                         config => { operation => 'warn' }
                     ),
-                    Opal::Term::Kontinue::Eval::Cons::Rest->new(
-                        rest => Opal::Term::List->CREATE( @args ),
+                    MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                        rest => MXCL::Term::List->CREATE( @args ),
                         env  => $env
                     )
                 ]
             }),
-            Opal::Builtins::lift_operative('readline', [], sub ($env, @) {
+            MXCL::Builtins::lift_operative('readline', [], sub ($env, @) {
                 return [
-                    Opal::Term::Kontinue::Host->new(
+                    MXCL::Term::Kontinue::Host->new(
                         env    => $env,
                         effect => $self,
                         config => { operation => 'readline' }

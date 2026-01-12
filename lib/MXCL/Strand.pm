@@ -2,17 +2,17 @@
 use v5.42;
 use experimental qw[ class ];
 
-use Opal::Tokenizer;
-use Opal::Parser;
-use Opal::Expander;
-use Opal::Machine;
-use Opal::Capabilities;
+use MXCL::Tokenizer;
+use MXCL::Parser;
+use MXCL::Expander;
+use MXCL::Machine;
+use MXCL::Capabilities;
 
-use Opal::Effect;
-use Opal::Effect::TTY;
-use Opal::Effect::REPL;
+use MXCL::Effect;
+use MXCL::Effect::TTY;
+use MXCL::Effect::REPL;
 
-class Opal::Strand {
+class MXCL::Strand {
     field $capabilities :reader :param = undef;
     field $tokenizer    :reader;
     field $parser       :reader;
@@ -20,29 +20,29 @@ class Opal::Strand {
     field $machine      :reader;
 
     ADJUST {
-        $capabilities //= Opal::Capabilities->new(
+        $capabilities //= MXCL::Capabilities->new(
             effects => [
-                Opal::Effect::TTY->new,
-                Opal::Effect::REPL->new,
+                MXCL::Effect::TTY->new,
+                MXCL::Effect::REPL->new,
             ]
         );
     }
 
     method load ($source) {
-        $tokenizer = Opal::Tokenizer->new( source => $source );
-        $parser    = Opal::Parser->new( tokens => $tokenizer->tokenize );
-        $expander  = Opal::Expander->new( exprs => $parser->parse );
+        $tokenizer = MXCL::Tokenizer->new( source => $source );
+        $parser    = MXCL::Parser->new( tokens => $tokenizer->tokenize );
+        $expander  = MXCL::Expander->new( exprs => $parser->parse );
 
         my $env  = $capabilities->new_environment;
-        $machine = Opal::Machine->new(
+        $machine = MXCL::Machine->new(
             program => $expander->expand,
             env     => $env,
-            on_exit => Opal::Term::Kontinue::Host->new(
-                effect => Opal::Effect::Halt->new,
+            on_exit => MXCL::Term::Kontinue::Host->new(
+                effect => MXCL::Effect::Halt->new,
                 env => $env
             ),
-            on_error => Opal::Term::Kontinue::Host->new(
-                effect => Opal::Effect::Error->new,
+            on_error => MXCL::Term::Kontinue::Host->new(
+                effect => MXCL::Effect::Error->new,
                 env => $env
             ),
         );

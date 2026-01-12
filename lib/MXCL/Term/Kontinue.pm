@@ -2,19 +2,19 @@
 use v5.42;
 use experimental qw[ class ];
 
-use Opal::Term;
+use MXCL::Term;
 
 # ------------------------------------------------------------------------------
 # Kontinuations
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Kontinue :isa(Opal::Term) {
+class MXCL::Term::Kontinue :isa(MXCL::Term) {
     field $stack :param :reader = +[];
     field $env   :param :reader;
 
     sub build ($class, %args) { $class->new( %args ) }
 
-    method type { __CLASS__ =~ s/^Opal\:\:Term\:\:Kontinue\:\://r }
+    method type { __CLASS__ =~ s/^MXCL\:\:Term\:\:Kontinue\:\://r }
 
     method stack_pop       { pop  @$stack }
     method stack_push (@e) { push @$stack => @e }
@@ -31,7 +31,7 @@ class Opal::Term::Kontinue :isa(Opal::Term) {
     method stringify { $self->format('') }
 }
 
-class Opal::Term::Kontinue::Host :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Host :isa(MXCL::Term::Kontinue) {
     field $effect :param :reader;
     field $config :param :reader = +{};
 
@@ -40,7 +40,7 @@ class Opal::Term::Kontinue::Host :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Throw :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Throw :isa(MXCL::Term::Kontinue) {
     field $exception :param :reader;
 
     method stringify {
@@ -48,7 +48,7 @@ class Opal::Term::Kontinue::Throw :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Catch :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Catch :isa(MXCL::Term::Kontinue) {
     field $handler :param :reader;
 
     method stringify {
@@ -56,7 +56,7 @@ class Opal::Term::Kontinue::Catch :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::IfElse :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::IfElse :isa(MXCL::Term::Kontinue) {
     field $condition :param :reader;
     field $if_true   :param :reader;
     field $if_false  :param :reader;
@@ -71,7 +71,7 @@ class Opal::Term::Kontinue::IfElse :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Define :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Define :isa(MXCL::Term::Kontinue) {
     field $name :param :reader;
 
     method stringify {
@@ -79,7 +79,7 @@ class Opal::Term::Kontinue::Define :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Mutate :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Mutate :isa(MXCL::Term::Kontinue) {
     field $name :param :reader;
 
     method stringify {
@@ -87,7 +87,7 @@ class Opal::Term::Kontinue::Mutate :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Return :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Return :isa(MXCL::Term::Kontinue) {
     field $value :param :reader;
 
     method stringify {
@@ -95,7 +95,7 @@ class Opal::Term::Kontinue::Return :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Eval::Expr :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Eval::Expr :isa(MXCL::Term::Kontinue) {
     field $expr :param :reader;
 
     method stringify {
@@ -103,9 +103,9 @@ class Opal::Term::Kontinue::Eval::Expr :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Eval::TOS :isa(Opal::Term::Kontinue) {}
+class MXCL::Term::Kontinue::Eval::TOS :isa(MXCL::Term::Kontinue) {}
 
-class Opal::Term::Kontinue::Eval::Cons :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Eval::Cons :isa(MXCL::Term::Kontinue) {
     field $cons :param :reader;
 
     method stringify {
@@ -113,7 +113,7 @@ class Opal::Term::Kontinue::Eval::Cons :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Eval::Cons::Rest :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Eval::Cons::Rest :isa(MXCL::Term::Kontinue) {
     field $rest :param :reader;
 
     method stringify {
@@ -121,7 +121,7 @@ class Opal::Term::Kontinue::Eval::Cons::Rest :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Apply::Expr :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Apply::Expr :isa(MXCL::Term::Kontinue) {
     field $args :param :reader;
 
     method stringify {
@@ -129,7 +129,7 @@ class Opal::Term::Kontinue::Apply::Expr :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Apply::Operative :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Apply::Operative :isa(MXCL::Term::Kontinue) {
     field $call :param :reader;
     field $args :param :reader;
 
@@ -138,7 +138,7 @@ class Opal::Term::Kontinue::Apply::Operative :isa(Opal::Term::Kontinue) {
     }
 }
 
-class Opal::Term::Kontinue::Apply::Applicative :isa(Opal::Term::Kontinue) {
+class MXCL::Term::Kontinue::Apply::Applicative :isa(MXCL::Term::Kontinue) {
     field $call :param :reader;
 
     method stringify {

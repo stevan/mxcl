@@ -3,10 +3,10 @@
 use v5.42;
 use experimental qw[ class ];
 
-use Opal::Term;
-use Opal::Term::Parser;
+use MXCL::Term;
+use MXCL::Term::Parser;
 
-class Opal::Tokenizer {
+class MXCL::Tokenizer {
     field $source :param :reader;
 
     method tokenize {
@@ -27,7 +27,7 @@ class Opal::Tokenizer {
                 my $start = $char_at - $line_at;
                 $char_at = pos($source);
 
-                push @tokens => Opal::Term::Parser::Token->new(
+                push @tokens => MXCL::Term::Parser::Token->new(
                     value => $match,
                     start => $start,
                     end   => $char_at - $line_at,

@@ -2,10 +2,10 @@
 use v5.42;
 use experimental qw[ class switch ];
 
-use Opal::Term;
-use Opal::Term::Parser;
+use MXCL::Term;
+use MXCL::Term::Parser;
 
-class Opal::Parser {
+class MXCL::Parser {
     field $tokens :param :reader;
 
     method parse {
@@ -20,7 +20,7 @@ class Opal::Parser {
     method parse_expression {
         my $token = shift @$tokens;
         #say "parse_expression ".$token->stringify;
-        return $self->parse_compound(Opal::Term::Parser::Compound->new( open => $token ))
+        return $self->parse_compound(MXCL::Term::Parser::Compound->new( open => $token ))
             if $token->value eq '('
             || $token->value eq '%{'
             || $token->value eq '{'
@@ -28,7 +28,7 @@ class Opal::Parser {
             || $token->value eq '[';
 
         if ($token->value eq "'") {
-            return Opal::Term::Parser::Compound->new(
+            return MXCL::Term::Parser::Compound->new(
                 open     => $token,
                 elements => [ $self->parse_expression ]
             );
@@ -46,19 +46,19 @@ class Opal::Parser {
             given ($close->value) {
                 when (')') {
                     $compound->open->value eq '('
-                        || Opal::Term::Parser::Exception->throw
+                        || MXCL::Term::Parser::Exception->throw
                             ("Unbalanced Brackets: Expected ) and got "
                                 .$compound->open->value)
                 }
                 when (']') {
                     $compound->open->value eq '[' || $compound->open->value eq '@['
-                        || Opal::Term::Parser::Exception->throw
+                        || MXCL::Term::Parser::Exception->throw
                             ("Unbalanced Brackets: Expected ] and got "
                                 .$compound->open->value)
                 }
                 when ('}') {
                     $compound->open->value eq '{' || $compound->open->value eq '%{'
-                        || Opal::Term::Parser::Exception->throw
+                        || MXCL::Term::Parser::Exception->throw
                             ("Unbalanced Brackets: Expected } and got "
                                 .$compound->open->value)
                 }

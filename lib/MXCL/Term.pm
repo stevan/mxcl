@@ -2,14 +2,16 @@
 use v5.42;
 use experimental qw[ class ];
 
+use Sub::Util;
+
 # ------------------------------------------------------------------------------
 
-class Opal::Term {
+class MXCL::Term {
     use overload '""' => 'stringify';
 
     method identity { $self }
 
-    method type { __CLASS__ =~ s/^Opal\:\:Term\:\://r }
+    method type { __CLASS__ =~ s/^MXCL\:\:Term\:\://r }
 
     sub CREATE ($class, @args) { ... }
 
@@ -22,9 +24,9 @@ class Opal::Term {
 # ... these are built at compile time
 # ==============================================================================
 
-class Opal::Term::Atom :isa(Opal::Term) {}
+class MXCL::Term::Atom :isa(MXCL::Term) {}
 
-class Opal::Term::Unit :isa(Opal::Term) {
+class MXCL::Term::Unit :isa(MXCL::Term) {
     sub CREATE ($class) { $class->new }
 
     method stringify { '(unit)' }
@@ -35,25 +37,25 @@ class Opal::Term::Unit :isa(Opal::Term) {
 # Literals
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Literal :isa(Opal::Term::Atom) {
+class MXCL::Term::Literal :isa(MXCL::Term::Atom) {
     field $value :param :reader;
 
     sub CREATE ($class, $value) { $class->new( value => $value ) }
 }
 
-class Opal::Term::Num :isa(Opal::Term::Literal) {
+class MXCL::Term::Num :isa(MXCL::Term::Literal) {
     method stringify { sprintf '%d' => $self->value }
     method numify    { $self->value }
     method boolify   { $self->value != 0 }
 }
 
-class Opal::Term::Str :isa(Opal::Term::Literal) {
+class MXCL::Term::Str :isa(MXCL::Term::Literal) {
     method stringify { sprintf '"%s"' => $self->value }
     method numify    { 0+$self->value }
     method boolify   { $self->value ne '' }
 }
 
-class Opal::Term::Bool :isa(Opal::Term::Literal) {
+class MXCL::Term::Bool :isa(MXCL::Term::Literal) {
     method stringify { $self->value ? 'true' : 'false' }
     method numify    { $self->value ? 1 : 0 }
     method boolify   { $self->value }
@@ -63,7 +65,7 @@ class Opal::Term::Bool :isa(Opal::Term::Literal) {
 # Words
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Word :isa(Opal::Term::Atom) {
+class MXCL::Term::Word :isa(MXCL::Term::Atom) {
     field $ident :param :reader;
 
     sub CREATE ($class, $ident) { $class->new( ident => $ident ) }
@@ -71,8 +73,8 @@ class Opal::Term::Word :isa(Opal::Term::Atom) {
     method stringify { $ident }
 }
 
-class Opal::Term::Sym :isa(Opal::Term::Word) {}
-class Opal::Term::Key :isa(Opal::Term::Word) {
+class MXCL::Term::Sym :isa(MXCL::Term::Word) {}
+class MXCL::Term::Key :isa(MXCL::Term::Word) {
     method stringify { ':'.$self->ident }
 }
 
@@ -80,7 +82,7 @@ class Opal::Term::Key :isa(Opal::Term::Word) {
 # Pairs
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Pair :isa(Opal::Term) {
+class MXCL::Term::Pair :isa(MXCL::Term) {
     field $fst :param :reader;
     field $snd :param :reader;
 
@@ -95,7 +97,7 @@ class Opal::Term::Pair :isa(Opal::Term) {
 # Lists
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Nil  :isa(Opal::Term::Atom) {
+class MXCL::Term::Nil  :isa(MXCL::Term::Atom) {
 
     sub CREATE ($class) { $class->new }
 
@@ -105,7 +107,7 @@ class Opal::Term::Nil  :isa(Opal::Term::Atom) {
     method boolify   { false }
 }
 
-class Opal::Term::List :isa(Opal::Term) {
+class MXCL::Term::List :isa(MXCL::Term) {
     field $items :param :reader = +[];
 
     sub CREATE ($class, @items) { $class->new( items => [ @items ] ) }
@@ -116,7 +118,7 @@ class Opal::Term::List :isa(Opal::Term) {
 
     method first { $items->[0] }
     method rest  {
-        return Opal::Term::Nil->new if scalar @$items == 1;
+        return MXCL::Term::Nil->new if scalar @$items == 1;
         return __CLASS__->new( items => [ $items->@[ 1 .. $#{$items} ] ] );
     }
 
@@ -129,7 +131,7 @@ class Opal::Term::List :isa(Opal::Term) {
 # Tuple
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Tuple :isa(Opal::Term) {
+class MXCL::Term::Tuple :isa(MXCL::Term) {
     field $elements :param :reader;
 
     sub CREATE ($class, @elements) { $class->new( elements => [ @elements ] ) }
@@ -147,7 +149,7 @@ class Opal::Term::Tuple :isa(Opal::Term) {
 # Arrays
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Array :isa(Opal::Term) {
+class MXCL::Term::Array :isa(MXCL::Term) {
     field $elements :param :reader = +[];
 
     sub CREATE ($class, @elements) { $class->new( elements => [ @elements ] ) }
@@ -172,7 +174,7 @@ class Opal::Term::Array :isa(Opal::Term) {
 # Hashes
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Hash :isa(Opal::Term) {
+class MXCL::Term::Hash :isa(MXCL::Term) {
     field $entries :param :reader = +{};
 
     sub CREATE ($class, @args) {
@@ -202,7 +204,7 @@ class Opal::Term::Hash :isa(Opal::Term) {
 
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Environment :isa(Opal::Term::Hash) {
+class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
     field $parent :param :reader = undef;
 
     method is_root    { not defined $parent }
@@ -233,13 +235,13 @@ class Opal::Term::Environment :isa(Opal::Term::Hash) {
 # Exceptions
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Exception :isa(Opal::Term) {
+class MXCL::Term::Exception :isa(MXCL::Term) {
     field $msg :param :reader;
 
     sub CREATE ($class, $msg) { $class->new( msg => $msg ) }
 
     sub throw ($class, $msg) {
-        die $class->new( msg => blessed $msg ? $msg : Opal::Term::Str->new( value => $msg ) )
+        die $class->new( msg => blessed $msg ? $msg : MXCL::Term::Str->new( value => $msg ) )
     }
 
     method stringify {
@@ -251,16 +253,17 @@ class Opal::Term::Exception :isa(Opal::Term) {
 # Functions (Callable)
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Callable    :isa(Opal::Term) {}
-class Opal::Term::Applicative :isa(Opal::Term::Callable) {}
-class Opal::Term::Operative   :isa(Opal::Term::Callable) {}
+class MXCL::Term::Callable    :isa(MXCL::Term) {}
+class MXCL::Term::Applicative :isa(MXCL::Term::Callable) {}
+class MXCL::Term::Operative   :isa(MXCL::Term::Callable) {}
 
-class Opal::Term::Applicative::Native :isa(Opal::Term::Applicative) {
+class MXCL::Term::Applicative::Native :isa(MXCL::Term::Applicative) {
     field $name   :param :reader;
     field $params :param :reader = [];
     field $body   :param :reader;
 
     sub CREATE ($class, $name, $params, $body) {
+        Sub::Util::set_subname( $name->ident, $body );
         $class->new( name => $name, params => $params, body => $body )
     }
 
@@ -269,12 +272,13 @@ class Opal::Term::Applicative::Native :isa(Opal::Term::Applicative) {
     }
 }
 
-class Opal::Term::Operative::Native :isa(Opal::Term::Operative) {
+class MXCL::Term::Operative::Native :isa(MXCL::Term::Operative) {
     field $name   :param :reader;
     field $params :param :reader = [];
     field $body   :param :reader;
 
     sub CREATE ($class, $name, $params, $body) {
+        Sub::Util::set_subname( $name->ident, $body );
         $class->new( name => $name, params => $params, body => $body )
     }
 
@@ -283,7 +287,7 @@ class Opal::Term::Operative::Native :isa(Opal::Term::Operative) {
     }
 }
 
-class Opal::Term::Lambda :isa(Opal::Term::Applicative) {
+class MXCL::Term::Lambda :isa(MXCL::Term::Applicative) {
     field $params :param :reader;
     field $body   :param :reader;
     field $env    :param :reader;
@@ -297,7 +301,7 @@ class Opal::Term::Lambda :isa(Opal::Term::Applicative) {
     }
 }
 
-class Opal::Term::FExpr :isa(Opal::Term::Operative) {
+class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
     field $params :param :reader;
     field $body   :param :reader;
     field $env    :param :reader;

@@ -2,12 +2,12 @@
 use v5.42;
 use experimental qw[ class switch ];
 
-use Opal::Term;
-use Opal::Term::Kontinue;
-use Opal::Builtins;
-use Opal::Effect;
+use MXCL::Term;
+use MXCL::Term::Kontinue;
+use MXCL::Builtins;
+use MXCL::Effect;
 
-class Opal::Effect::REPL :isa(Opal::Effect) {
+class MXCL::Effect::REPL :isa(MXCL::Effect) {
     field $input  :param :reader = undef;
     field $output :param :reader = undef;
     field $error  :param :reader = undef;
@@ -24,17 +24,17 @@ class Opal::Effect::REPL :isa(Opal::Effect) {
                 # print the old result if we have it
                 if (defined(my $result = $k->stack_pop())) {
                     $output->print( '> ', $result->stringify, "\n" ) ;
-                    $k->env->define( Opal::Term::Sym->CREATE('_') => $result );
+                    $k->env->define( MXCL::Term::Sym->CREATE('_') => $result );
                 }
 
                 # get new source
                 $output->print('? ');
                 my $source = $input->getline;
 
-                # compile
-                my $exprs = Opal::Expander->new(
-                    exprs => Opal::Parser->new(
-                        tokens => Opal::Tokenizer->new(
+                # compile it ...
+                my $exprs = MXCL::Expander->new(
+                    exprs => MXCL::Parser->new(
+                        tokens => MXCL::Tokenizer->new(
                             source => $source
                         )->tokenize
                     )->parse
@@ -44,14 +44,14 @@ class Opal::Effect::REPL :isa(Opal::Effect) {
                 # TODO - add history to this continuation
                 return +[
                     $k,
-                    Opal::Term::Kontinue::Catch->new(
+                    MXCL::Term::Kontinue::Catch->new(
                         env     => $k->env,
-                        handler => Opal::Builtins::lift_applicative('repl-catch', [qw[ exception ]], sub ($env, $exception) {
+                        handler => MXCL::Builtins::lift_applicative('repl-catch', [qw[ exception ]], sub ($env, $exception) {
                             return $exception;
                         })
                     ),
                     reverse map {
-                        Opal::Term::Kontinue::Eval::Expr->new( env => $k->env, expr => $_ )
+                        MXCL::Term::Kontinue::Eval::Expr->new( env => $k->env, expr => $_ )
                     } @$exprs
                 ]
             }
@@ -63,9 +63,9 @@ class Opal::Effect::REPL :isa(Opal::Effect) {
 
     method provides {
         return +[
-            Opal::Builtins::lift_operative('repl', [], sub ($env, @) {
+            MXCL::Builtins::lift_operative('repl', [], sub ($env, @) {
                 return [
-                    Opal::Term::Kontinue::Host->new(
+                    MXCL::Term::Kontinue::Host->new(
                         env    => $env,
                         effect => $self,
                         config => { operation => 'repl' }

@@ -3,15 +3,15 @@
 use v5.42;
 use experimental qw[ class ];
 
-use Opal::Term;
+use MXCL::Term;
 
 # ------------------------------------------------------------------------------
 # Parser Terms
 # ------------------------------------------------------------------------------
 
-class Opal::Term::Parser::Exception :isa(Opal::Term::Exception) {}
+class MXCL::Term::Parser::Exception :isa(MXCL::Term::Exception) {}
 
-class Opal::Term::Parser::Token :isa(Opal::Term::Str) {
+class MXCL::Term::Parser::Token :isa(MXCL::Term::Str) {
     field $start :param :reader = -1;
     field $end   :param :reader = -1;
     field $line  :param :reader = -1;
@@ -34,7 +34,7 @@ class Opal::Term::Parser::Token :isa(Opal::Term::Str) {
     }
 }
 
-class Opal::Term::Parser::Compound :isa(Opal::Term::Array) {
+class MXCL::Term::Parser::Compound :isa(MXCL::Term::Array) {
     field $open  :param = undef;
     field $close :param = undef;
 

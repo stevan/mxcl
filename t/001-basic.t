@@ -7,7 +7,7 @@ use Test::More;
 use Data::Dumper qw[ Dumper ];
 use Carp         qw[ confess ];
 
-use Opal::Strand;
+use MXCL::Strand;
 
 my $source = q[
 
@@ -39,10 +39,10 @@ my $source = q[
 
 ];
 
-my $kont = Opal::Strand->new->load($source)->run;
-isa_ok($kont, 'Opal::Term::Kontinue::Host');
+my $kont = MXCL::Strand->new->load($source)->run;
+isa_ok($kont, 'MXCL::Term::Kontinue::Host');
 
-isa_ok($kont->effect, 'Opal::Effect::Halt', '... expected normal exit');
+isa_ok($kont->effect, 'MXCL::Effect::Halt', '... expected normal exit');
 
 my ($list) = $kont->spill_stack();
 

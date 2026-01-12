@@ -2,10 +2,10 @@
 use v5.42;
 use experimental qw[ class switch ];
 
-use Opal::Term;
-use Opal::Term::Kontinue;
+use MXCL::Term;
+use MXCL::Term::Kontinue;
 
-class Opal::Effect {
+class MXCL::Effect {
     # handles ($host-kontinue)
     #   - returning undef tells the machine to halt
     #   - otherwise return an array of Kontinue objects to resume with
@@ -17,13 +17,13 @@ class Opal::Effect {
     method provides { ... }
 }
 
-class Opal::Effect::Halt :isa(Opal::Effect) {
+class MXCL::Effect::Halt :isa(MXCL::Effect) {
     method handles  { undef }
     # XXX - should this provide an exit() function?
     method provides { +[] }
 }
 
-class Opal::Effect::Error :isa(Opal::Effect) {
+class MXCL::Effect::Error :isa(MXCL::Effect) {
     method handles  ($k) { die "ERROR!!!!", (join ', ' => map { $_->stringify } $k->spill_stack()),"\n" }
     # XXX - should this provide anything?
     method provides { +[] }

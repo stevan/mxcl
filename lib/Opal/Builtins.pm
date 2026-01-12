@@ -20,98 +20,98 @@ sub get_core_set {
     #   - hash/get hash/set!
     #       - hash/exists hash/keys hash/values
     # --------------------------------------------------------------------------
-    $BIFS //= +{
+    $BIFS //= +[
         # ----------------------------------------------------------------------
         # Type Predicates
         # ----------------------------------------------------------------------
 
-        'isa?' => lift_applicative('isa?', [qw[ value type ]], sub ($env, $value, $type) {
+        lift_applicative('isa?', [qw[ value type ]], sub ($env, $value, $type) {
             return Opal::Term::Str->CREATE( $value->type eq $type )
         }),
 
-        'atom?' => lift_type_predicate('atom?', 'Opal::Term::Atom'),
-            'literal?' => lift_type_predicate('literal?', 'Opal::Term::Literal'),
-                'bool?' => lift_type_predicate('bool?', 'Opal::Term::Bool'),
-                'num?'  => lift_type_predicate('num?',  'Opal::Term::Num'),
-                'str?'  => lift_type_predicate('str?',  'Opal::Term::Str'),
-            'word?' => lift_type_predicate('word?', 'Opal::Term::Word'),
-                'sym?' => lift_type_predicate('sym?', 'Opal::Term::Sym'),
-                'tag?' => lift_type_predicate('tag?', 'Opal::Term::Tag'),
+        lift_type_predicate('atom?', 'Opal::Term::Atom'),
+        lift_type_predicate('literal?', 'Opal::Term::Literal'),
+        lift_type_predicate('bool?', 'Opal::Term::Bool'),
+        lift_type_predicate('num?',  'Opal::Term::Num'),
+        lift_type_predicate('str?',  'Opal::Term::Str'),
+        lift_type_predicate('word?', 'Opal::Term::Word'),
+        lift_type_predicate('sym?', 'Opal::Term::Sym'),
+        lift_type_predicate('tag?', 'Opal::Term::Tag'),
 
-        'pair?'   => lift_type_predicate('pair?',  'Opal::Term::Pair'),
-        'list?'   => lift_type_predicate('list?',  'Opal::Term::List'),
-        'nil?'    => lift_type_predicate('nil?',   'Opal::Term::Nil'),
-        'tuple?'  => lift_type_predicate('tuple?', 'Opal::Term::Tuple'),
-        'array?'  => lift_type_predicate('array?', 'Opal::Term::Array'),
-        'hash?'   => lift_type_predicate('hash?',  'Opal::Term::Hash'),
+        lift_type_predicate('pair?',  'Opal::Term::Pair'),
+        lift_type_predicate('list?',  'Opal::Term::List'),
+        lift_type_predicate('nil?',   'Opal::Term::Nil'),
+        lift_type_predicate('tuple?', 'Opal::Term::Tuple'),
+        lift_type_predicate('array?', 'Opal::Term::Array'),
+        lift_type_predicate('hash?',  'Opal::Term::Hash'),
 
-        'environment?' => lift_type_predicate('environment?', 'Opal::Term::Environment'),
-        'exception?'   => lift_type_predicate('exception?', 'Opal::Term::Exception'),
-        'unit?'        => lift_type_predicate('unit?', 'Opal::Term::Unit'),
+        lift_type_predicate('environment?', 'Opal::Term::Environment'),
+        lift_type_predicate('exception?', 'Opal::Term::Exception'),
+        lift_type_predicate('unit?', 'Opal::Term::Unit'),
 
-        'callable?' => lift_type_predicate('callable?', 'Opal::Term::Callable'),
-            'applicative?' => lift_type_predicate('applicative?', 'Opal::Term::Applicative'),
-                'applicative-native?' => lift_type_predicate('applicative-native?', 'Opal::Term::Applicative::Native'),
-                'lambda?' => lift_type_predicate('lambda?', 'Opal::Term::Lambda'),
-            'operative?'   => lift_type_predicate('operative?', 'Opal::Term::Operative'),
-                'operative-native?' => lift_type_predicate('applicative-native?', 'Opal::Term::Operative::Native'),
-                'fexpr?'  => lift_type_predicate('fexpr?',  'Opal::Term::FExpr'),
+        lift_type_predicate('callable?', 'Opal::Term::Callable'),
+        lift_type_predicate('applicative?', 'Opal::Term::Applicative'),
+        lift_type_predicate('applicative-native?', 'Opal::Term::Applicative::Native'),
+        lift_type_predicate('lambda?', 'Opal::Term::Lambda'),
+        lift_type_predicate('operative?', 'Opal::Term::Operative'),
+        lift_type_predicate('applicative-native?', 'Opal::Term::Operative::Native'),
+        lift_type_predicate('fexpr?',  'Opal::Term::FExpr'),
 
 
         # ----------------------------------------------------------------------
         # Coercing
         # ----------------------------------------------------------------------
 
-        'numify'    => lift_applicative('numify',    [qw[ value ]], sub ($env, $value) { Opal::Term::Num->CREATE( $value->numify ) }),
-        'stringify' => lift_applicative('stringify', [qw[ value ]], sub ($env, $value) { Opal::Term::Str->CREATE( $value->stringify ) }),
-        'boolify'   => lift_applicative('boolify',   [qw[ value ]], sub ($env, $value) { Opal::Term::Bool->CREATE( $value->boolify ) }),
+        lift_applicative('numify',    [qw[ value ]], sub ($env, $value) { Opal::Term::Num->CREATE( $value->numify ) }),
+        lift_applicative('stringify', [qw[ value ]], sub ($env, $value) { Opal::Term::Str->CREATE( $value->stringify ) }),
+        lift_applicative('boolify',   [qw[ value ]], sub ($env, $value) { Opal::Term::Bool->CREATE( $value->boolify ) }),
 
         # ----------------------------------------------------------------------
         # Artithmetic
         # ----------------------------------------------------------------------
 
-        '+' => lift_literal_sub('+', [qw[ n m ]], sub ($n, $m) { $n + $m }, 'numify', 'Opal::Term::Num'),
-        '-' => lift_literal_sub('-', [qw[ n m ]], sub ($n, $m) { $n - $m }, 'numify', 'Opal::Term::Num'),
-        '*' => lift_literal_sub('*', [qw[ n m ]], sub ($n, $m) { $n * $m }, 'numify', 'Opal::Term::Num'),
-        '/' => lift_literal_sub('/', [qw[ n m ]], sub ($n, $m) { $n / $m }, 'numify', 'Opal::Term::Num'),
-        '%' => lift_literal_sub('%', [qw[ n m ]], sub ($n, $m) { $n % $m }, 'numify', 'Opal::Term::Num'),
+        lift_literal_sub('+', [qw[ n m ]], sub ($n, $m) { $n + $m }, 'numify', 'Opal::Term::Num'),
+        lift_literal_sub('-', [qw[ n m ]], sub ($n, $m) { $n - $m }, 'numify', 'Opal::Term::Num'),
+        lift_literal_sub('*', [qw[ n m ]], sub ($n, $m) { $n * $m }, 'numify', 'Opal::Term::Num'),
+        lift_literal_sub('/', [qw[ n m ]], sub ($n, $m) { $n / $m }, 'numify', 'Opal::Term::Num'),
+        lift_literal_sub('%', [qw[ n m ]], sub ($n, $m) { $n % $m }, 'numify', 'Opal::Term::Num'),
 
         # ----------------------------------------------------------------------
         # String Operations
         # ----------------------------------------------------------------------
 
-        '~' => lift_literal_sub('~', [qw[ n m ]], sub ($n, $m) { $n . $m }, 'stringify', 'Opal::Term::Str'),
+        lift_literal_sub('~', [qw[ n m ]], sub ($n, $m) { $n . $m }, 'stringify', 'Opal::Term::Str'),
 
         # ----------------------------------------------------------------------
         # Comparisons
         # ----------------------------------------------------------------------
 
-        '==' => lift_literal_sub('==', [qw[ n m ]], sub ($n, $m) { $n == $m }, 'numify', 'Opal::Term::Bool'),
-        '!=' => lift_literal_sub('!=', [qw[ n m ]], sub ($n, $m) { $n != $m }, 'numify', 'Opal::Term::Bool'),
-        '>'  => lift_literal_sub('>',  [qw[ n m ]], sub ($n, $m) { $n >  $m }, 'numify', 'Opal::Term::Bool'),
-        '>=' => lift_literal_sub('>=', [qw[ n m ]], sub ($n, $m) { $n >= $m }, 'numify', 'Opal::Term::Bool'),
-        '<'  => lift_literal_sub('<',  [qw[ n m ]], sub ($n, $m) { $n <  $m }, 'numify', 'Opal::Term::Bool'),
-        '<=' => lift_literal_sub('<=', [qw[ n m ]], sub ($n, $m) { $n <= $m }, 'numify', 'Opal::Term::Bool'),
+        lift_literal_sub('==', [qw[ n m ]], sub ($n, $m) { $n == $m }, 'numify', 'Opal::Term::Bool'),
+        lift_literal_sub('!=', [qw[ n m ]], sub ($n, $m) { $n != $m }, 'numify', 'Opal::Term::Bool'),
+        lift_literal_sub('>',  [qw[ n m ]], sub ($n, $m) { $n >  $m }, 'numify', 'Opal::Term::Bool'),
+        lift_literal_sub('>=', [qw[ n m ]], sub ($n, $m) { $n >= $m }, 'numify', 'Opal::Term::Bool'),
+        lift_literal_sub('<',  [qw[ n m ]], sub ($n, $m) { $n <  $m }, 'numify', 'Opal::Term::Bool'),
+        lift_literal_sub('<=', [qw[ n m ]], sub ($n, $m) { $n <= $m }, 'numify', 'Opal::Term::Bool'),
 
 
-        'eq' => lift_literal_sub('eq', [qw[ n m ]], sub ($n, $m) { $n eq $m }, 'stringify', 'Opal::Term::Bool'),
-        'ne' => lift_literal_sub('ne', [qw[ n m ]], sub ($n, $m) { $n ne $m }, 'stringify', 'Opal::Term::Bool'),
-        'gt' => lift_literal_sub('gt', [qw[ n m ]], sub ($n, $m) { $n gt $m }, 'stringify', 'Opal::Term::Bool'),
-        'ge' => lift_literal_sub('ge', [qw[ n m ]], sub ($n, $m) { $n ge $m }, 'stringify', 'Opal::Term::Bool'),
-        'lt' => lift_literal_sub('lt', [qw[ n m ]], sub ($n, $m) { $n lt $m }, 'stringify', 'Opal::Term::Bool'),
-        'le' => lift_literal_sub('le', [qw[ n m ]], sub ($n, $m) { $n le $m }, 'stringify', 'Opal::Term::Bool'),
+        lift_literal_sub('eq', [qw[ n m ]], sub ($n, $m) { $n eq $m }, 'stringify', 'Opal::Term::Bool'),
+        lift_literal_sub('ne', [qw[ n m ]], sub ($n, $m) { $n ne $m }, 'stringify', 'Opal::Term::Bool'),
+        lift_literal_sub('gt', [qw[ n m ]], sub ($n, $m) { $n gt $m }, 'stringify', 'Opal::Term::Bool'),
+        lift_literal_sub('ge', [qw[ n m ]], sub ($n, $m) { $n ge $m }, 'stringify', 'Opal::Term::Bool'),
+        lift_literal_sub('lt', [qw[ n m ]], sub ($n, $m) { $n lt $m }, 'stringify', 'Opal::Term::Bool'),
+        lift_literal_sub('le', [qw[ n m ]], sub ($n, $m) { $n le $m }, 'stringify', 'Opal::Term::Bool'),
 
-        '<=>' => lift_literal_sub('<=>', [qw[ n m ]], sub ($n, $m) { $n <=> $m }, 'numify', 'Opal::Term::Num'),
-        'cmp' => lift_literal_sub('cmp', [qw[ n m ]], sub ($n, $m) { $n cmp $m }, 'stringify', 'Opal::Term::Num'),
+        lift_literal_sub('<=>', [qw[ n m ]], sub ($n, $m) { $n <=> $m }, 'numify', 'Opal::Term::Num'),
+        lift_literal_sub('cmp', [qw[ n m ]], sub ($n, $m) { $n cmp $m }, 'stringify', 'Opal::Term::Num'),
 
         # ----------------------------------------------------------------------
         # Logical
         # ----------------------------------------------------------------------
 
-        'not' =>lift_applicative('not', [qw[ value ]], sub ($env, $value) {
+        lift_applicative('not', [qw[ value ]], sub ($env, $value) {
             return Opal::Term::Bool->CREATE( not( $value->boolify ) )
         }),
-        'and' => lift_operative('and', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
+        lift_operative('and', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
             return [
                 Opal::Term::Kontinue::IfElse->new(
                     env       => $env,
@@ -125,7 +125,7 @@ sub get_core_set {
                 )
             ]
         }),
-        'or' => lift_operative('or', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
+        lift_operative('or', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
             return [
                 Opal::Term::Kontinue::IfElse->new(
                     env       => $env,
@@ -146,7 +146,7 @@ sub get_core_set {
 
         # lambdas are different, they are operatives so that
         # we do not evaluate the params and body
-        'lambda' => lift_operative('lambda', [qw[ params body ]], sub ($env, $params, $body) {
+        lift_operative('lambda', [qw[ params body ]], sub ($env, $params, $body) {
             return [
                 Opal::Term::Kontinue::Return->new(
                     env   => $env,
@@ -156,28 +156,28 @@ sub get_core_set {
         }),
 
         # ... constructors
-        'pair/new'  => lift_datatype_constructor('pair',  [qw[ fst snd     ]], 'Opal::Term::Pair'),
-        'list/new'  => lift_datatype_constructor('list',  [qw[ ...items    ]], 'Opal::Term::List'),
-        'array/new' => lift_datatype_constructor('array', [qw[ ...items    ]], 'Opal::Term::Array'),
-        'tuple/new' => lift_datatype_constructor('tuple', [qw[ ...elements ]], 'Opal::Term::Tuple'),
-        'hash/new'  => lift_datatype_constructor('hash',  [qw[ ...entries  ]], 'Opal::Term::Hash'),
+        lift_datatype_constructor('pair/new',  [qw[ fst snd     ]], 'Opal::Term::Pair'),
+        lift_datatype_constructor('list/new',  [qw[ ...items    ]], 'Opal::Term::List'),
+        lift_datatype_constructor('array/new', [qw[ ...items    ]], 'Opal::Term::Array'),
+        lift_datatype_constructor('tuple/new', [qw[ ...elements ]], 'Opal::Term::Tuple'),
+        lift_datatype_constructor('hash/new',  [qw[ ...entries  ]], 'Opal::Term::Hash'),
 
         # ----------------------------------------------------------------------
         # Datatype Operations
         # ----------------------------------------------------------------------
 
         # pairs
-        'fst' => lift_applicative('fst',  [qw[ pair ]], sub ($env, $pair) { $pair->fst }),
-        'snd' => lift_applicative('snd',  [qw[ pair ]], sub ($env, $pair) { $pair->snd }),
+        lift_applicative('fst',  [qw[ pair ]], sub ($env, $pair) { $pair->fst }),
+        lift_applicative('snd',  [qw[ pair ]], sub ($env, $pair) { $pair->snd }),
 
-        'first' => lift_applicative('first', [qw[ list ]], sub ($env, $list) { $list->first }),
-        'rest'  => lift_applicative('rest',  [qw[ list ]], sub ($env, $list) { $list->rest }),
+        lift_applicative('first', [qw[ list ]], sub ($env, $list) { $list->first }),
+        lift_applicative('rest',  [qw[ list ]], sub ($env, $list) { $list->rest }),
 
         # ----------------------------------------------------------------------
         # Keywords
         # ----------------------------------------------------------------------
-        'quote' => lift_applicative('quote', [qw[ quoted ]], sub ($env, $quoted) { $quoted }),
-        'do'    => lift_operative('do', [qw[ ...block ]], sub ($env, @exprs) {
+        lift_applicative('quote', [qw[ quoted ]], sub ($env, $quoted) { $quoted }),
+        lift_operative('do', [qw[ ...block ]], sub ($env, @exprs) {
             my $local = $env->derive;
             return [
                 reverse map {
@@ -191,13 +191,13 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # Defintions & Scopes
         # ----------------------------------------------------------------------
-        'def' => lift_operative('def', [qw[ name value ]], sub ($env, $name, $value) {
+        lift_operative('def', [qw[ name value ]], sub ($env, $name, $value) {
             return [
                 Opal::Term::Kontinue::Define->new( name => $name, env => $env ),
                 Opal::Term::Kontinue::Eval::Expr->new( expr => $value, env => $env ),
             ]
         }),
-        'defun' => lift_operative('defun', [qw[ name params body ]], sub ($env, $name, $params, $body) {
+        lift_operative('defun', [qw[ name params body ]], sub ($env, $name, $params, $body) {
             return [
                 Opal::Term::Kontinue::Define->new( name => $name, env => $env ),
                 Opal::Term::Kontinue::Return->new(
@@ -210,7 +210,7 @@ sub get_core_set {
                 )
             ]
         }),
-        'set!' => lift_operative('set!', [qw[ name value ]], sub ($env, $name, $value) {
+        lift_operative('set!', [qw[ name value ]], sub ($env, $name, $value) {
             return [
                 Opal::Term::Kontinue::Mutate->new( name => $name, env => $env ),
                 Opal::Term::Kontinue::Eval::Expr->new( expr => $value, env => $env ),
@@ -219,7 +219,7 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # Scope
         # ----------------------------------------------------------------------
-        'let' => lift_operative('let', [qw[ binding body ]], sub ($env, $binding, $body) {
+        lift_operative('let', [qw[ binding body ]], sub ($env, $binding, $body) {
             my ($name, $value) = $binding->uncons;
             my $local = $env->derive;
             return [
@@ -231,7 +231,7 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # conditonals
         # ----------------------------------------------------------------------
-        'if' => lift_operative('and', [qw[ cond if-true if-false ]],
+        lift_operative('and', [qw[ cond if-true if-false ]],
         sub ($env, $cond, $if_true, $if_false) {
             my $local = $env->derive;
             return [
@@ -250,7 +250,7 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # exceptions
         # ----------------------------------------------------------------------
-        'throw' => lift_operative('throw', [qw[ msg ]], sub ($env, $msg) {
+        lift_operative('throw', [qw[ msg ]], sub ($env, $msg) {
             return [
                 Opal::Term::Kontinue::Throw->new(
                     env       => $env,
@@ -258,7 +258,7 @@ sub get_core_set {
                 )
             ]
         }),
-        'try' => lift_operative('try', [qw[ body catch-handler ]], sub ($env, $expr, $handler) {
+        lift_operative('try', [qw[ body catch-handler ]], sub ($env, $expr, $handler) {
             my ($params, $body) = $handler->rest->uncons;
             return [
                 Opal::Term::Kontinue::Catch->new(
@@ -276,7 +276,7 @@ sub get_core_set {
             ]
         }),
 
-    };
+    ];
 }
 
 # utils ...

@@ -9,9 +9,10 @@ use Opal::Effect;
 class Opal::Term::Runtime::Exception :isa(Opal::Term::Exception) {}
 
 class Opal::Machine {
-    field $program :param :reader;
-    field $env     :param :reader;
-    field $on_exit :param :reader;
+    field $program  :param :reader;
+    field $env      :param :reader;
+    field $on_exit  :param :reader;
+    field $on_error :param :reader;
 
     field $queue :reader;
     field $ticks :reader;
@@ -69,9 +70,9 @@ class Opal::Machine {
         while (@$queue) {
             $ticks++;
             my $k = pop @$queue;
-            warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
-            warn "KONT :=> $k\n";
-            warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
+            #warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
+            #warn "KONT :=> $k\n";
+            #warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
             try {
                 given ($k->type) {
                     when ('Host') {
@@ -128,10 +129,10 @@ class Opal::Machine {
                             }
                         }
                         # bubble up to the HOST if no catch is found
-                        return Opal::Term::Kontinue::Host->new(
-                            env    => $k->env,
-                            effect => Opal::Effect::Error->new( error => $k->exception )
-                        ) if scalar @$queue == 0;
+                        if (scalar @$queue == 0) {
+                            $on_error->stack_push( $k->exception );
+                            return $on_error
+                        }
                     }
                     when ('Catch') {
                         my $results = $k->stack_pop();

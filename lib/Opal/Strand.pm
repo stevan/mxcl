@@ -10,6 +10,7 @@ use Opal::Capabilities;
 
 use Opal::Effect;
 use Opal::Effect::TTY;
+use Opal::Effect::REPL;
 
 class Opal::Strand {
     field $capabilities :reader :param = undef;
@@ -21,7 +22,8 @@ class Opal::Strand {
     ADJUST {
         $capabilities //= Opal::Capabilities->new(
             effects => [
-                Opal::Effect::TTY->new
+                Opal::Effect::TTY->new,
+                Opal::Effect::REPL->new,
             ]
         );
     }
@@ -38,7 +40,11 @@ class Opal::Strand {
             on_exit => Opal::Term::Kontinue::Host->new(
                 effect => Opal::Effect::Halt->new,
                 env => $env
-            )
+            ),
+            on_error => Opal::Term::Kontinue::Host->new(
+                effect => Opal::Effect::Error->new,
+                env => $env
+            ),
         );
 
         $self;

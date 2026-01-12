@@ -7,20 +7,16 @@ use Opal::Builtins;
 use Opal::Effect;
 
 class Opal::Capabilities {
-    field $root_env :param :reader = undef;
     field $effects  :param :reader = +[];
+    field $base_env :reader;
 
     ADJUST {
-        $root_env //= Opal::Term::Environment->CREATE(
-            Opal::Builtins::get_core_set->%*
-        );
+        $base_env = Opal::Term::Environment->CREATE(
+            (map { $_->name, $_ }
+                (Opal::Builtins::get_core_set->@*,
+                    map { $_->provides->@* } @$effects))
+        )
     }
 
-    method new_environment {
-        my $env = $root_env->derive;
-        foreach my $effect (@$effects) {
-            $env->define( $_->name, $_ ) foreach $effect->provides->@*;
-        }
-        return $env;
-    }
+    method new_environment { $base_env->derive }
 }

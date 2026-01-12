@@ -24,9 +24,7 @@ class Opal::Effect::Halt :isa(Opal::Effect) {
 }
 
 class Opal::Effect::Error :isa(Opal::Effect) {
-    # FIXME - do better
-    field $error :param :reader;
-    method handles  ($k) { die "ERROR!!!!", (join ', ' => $error->stringify),"\n" }
+    method handles  ($k) { die "ERROR!!!!", (join ', ' => map { $_->stringify } $k->spill_stack()),"\n" }
     # XXX - should this provide anything?
     method provides { +[] }
 }

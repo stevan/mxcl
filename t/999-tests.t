@@ -11,7 +11,8 @@ use Opal::Strand;
 
 my $source = q[
 
-    (say "GOT: " (+ (numify (readline)) 20))
+
+    (repl)
 
 
 

@@ -19,16 +19,9 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
     }
 
     method handles ($k) {
-        my sub prepare_output () {
-            map {
-                # YUCK
-                $_ isa MXCL::Term::Str ? $_->value : $_->stringify
-            } $k->spill_stack()
-        }
-
         given ($k->config->{operation}) {
             when ('print') {
-                $output->print(prepare_output());
+                $output->print(map $_->stringify, $k->spill_stack());
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
@@ -37,7 +30,7 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
                 ]
             }
             when ('say') {
-                $output->print(prepare_output(), "\n");
+                $output->print((map $_->stringify, $k->spill_stack()), "\n");
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
@@ -46,7 +39,7 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
                 ]
             }
             when ('warn') {
-                $error->print(prepare_output(), "\n");
+                $error->print((map $_->stringify, $k->spill_stack()), "\n");
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,

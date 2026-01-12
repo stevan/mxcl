@@ -2,7 +2,7 @@
 use v5.42;
 use experimental qw[ class ];
 
-use Sub::Util;
+use Sub::Util ();
 
 # ------------------------------------------------------------------------------
 
@@ -14,6 +14,8 @@ class MXCL::Term {
     method type { __CLASS__ =~ s/^MXCL\:\:Term\:\://r }
 
     sub CREATE ($class, @args) { ... }
+
+    method equals ($other) { ... }
 
     method stringify { die "Cannot stringify a ".__CLASS__ }
     method numify    { die "Cannot numify a ".__CLASS__ }
@@ -28,6 +30,8 @@ class MXCL::Term::Atom :isa(MXCL::Term) {}
 
 class MXCL::Term::Unit :isa(MXCL::Term) {
     sub CREATE ($class) { $class->new }
+
+    method equals ($other) { $other isa __CLASS__ }
 
     method stringify { '(unit)' }
     method boolify   { false    }
@@ -44,18 +48,21 @@ class MXCL::Term::Literal :isa(MXCL::Term::Atom) {
 }
 
 class MXCL::Term::Num :isa(MXCL::Term::Literal) {
+    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
     method stringify { sprintf '%d' => $self->value }
     method numify    { $self->value }
     method boolify   { $self->value != 0 }
 }
 
 class MXCL::Term::Str :isa(MXCL::Term::Literal) {
-    method stringify { sprintf '"%s"' => $self->value }
+    method equals ($other) { $other isa __CLASS__ && $other->value eq $self->value }
+    method stringify { $self->value }
     method numify    { 0+$self->value }
     method boolify   { $self->value ne '' }
 }
 
 class MXCL::Term::Bool :isa(MXCL::Term::Literal) {
+    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
     method stringify { $self->value ? 'true' : 'false' }
     method numify    { $self->value ? 1 : 0 }
     method boolify   { $self->value }
@@ -70,6 +77,7 @@ class MXCL::Term::Word :isa(MXCL::Term::Atom) {
 
     sub CREATE ($class, $ident) { $class->new( ident => $ident ) }
 
+    method equals ($other) { $other isa MXCL::Term::Word && $other->ident == $self->ident }
     method stringify { $ident }
 }
 
@@ -88,6 +96,12 @@ class MXCL::Term::Pair :isa(MXCL::Term) {
 
     sub CREATE ($class, $first, $second) { $class->new( fst => $first, snd => $second ) }
 
+    method equals ($other) {
+        $other isa MXCL::Term::Word
+            && $fst->equals($other->fst)
+                %% && $snd->equals($other->snd)
+    }
+
     method stringify {
         sprintf '(%s . %s)' => $fst->stringify, $snd->stringify;
     }
@@ -103,6 +117,7 @@ class MXCL::Term::Nil  :isa(MXCL::Term::Atom) {
 
     method uncons { () }
 
+    method equals ($other) { $other isa __CLASS__ }
     method stringify { '()' }
     method boolify   { false }
 }
@@ -122,6 +137,16 @@ class MXCL::Term::List :isa(MXCL::Term) {
         return __CLASS__->new( items => [ $items->@[ 1 .. $#{$items} ] ] );
     }
 
+    method equals ($other) {
+        return false unless $other isa __CLASS__;
+        return false unless $self->length == $other->length;
+        for (my $i = 0; $i < scalar @$items; $i++) {
+            return false
+                unless $items->[$i]->equals( $other->items->[$i] );
+        }
+        return true;
+    }
+
     method stringify {
         sprintf '(%s)' => join ' ' => map $_->stringify, @$items;
     }
@@ -139,6 +164,16 @@ class MXCL::Term::Tuple :isa(MXCL::Term) {
     method size { scalar @$elements }
 
     method at ($idx) { $elements->[ $idx->value ] }
+
+    method equals ($other) {
+        return false unless $other isa __CLASS__;
+        return false unless $self->size == $other->size;
+        for (my $i = 0; $i < scalar @$elements; $i++) {
+            return false
+                unless $elements->[$i]->equals( $other->elements->[$i] );
+        }
+        return true;
+    }
 
     method stringify {
         sprintf '[%s]' => join ' ' => map $_->stringify, @$elements;
@@ -164,6 +199,17 @@ class MXCL::Term::Array :isa(MXCL::Term) {
 
     method pop   { pop   @$elements }
     method shift { shift @$elements }
+
+
+    method equals ($other) {
+        return false unless $other isa __CLASS__;
+        return false unless $self->length == $other->length;
+        for (my $i = 0; $i < scalar @$elements; $i++) {
+            return false
+                unless $elements->[$i]->equals( $other->elements->[$i] );
+        }
+        return true;
+    }
 
     method stringify {
         sprintf '@[%s]' => join ' ' => map $_->stringify, @$elements;
@@ -194,6 +240,16 @@ class MXCL::Term::Hash :isa(MXCL::Term) {
 
     method keys   { map { Key->new( ident => $_ ) } keys %$entries }
     method values { values %$entries }
+
+    method equals ($other) {
+        return false unless $other isa __CLASS__;
+        return false unless $self->size == $other->size;
+        foreach my $key (keys %$entries) {
+            return false
+                unless $entries->{$key}->equals( $other->entries->{$key} );
+        }
+        return true;
+    }
 
     method stringify {
         sprintf '%%(%s)' => join ' ' => map {
@@ -229,6 +285,13 @@ class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
     method derive (%bindings) {
         __CLASS__->new( parent => $self, entries => \%bindings )
     }
+
+    method equals ($other) {
+        return true if $self->SUPER::equals($other);
+        return refaddr $parent == refaddr $other->parent
+            if $parent->has_parent && $other->has_parent;
+        return false;
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -244,6 +307,8 @@ class MXCL::Term::Exception :isa(MXCL::Term) {
         die $class->new( msg => blessed $msg ? $msg : MXCL::Term::Str->new( value => $msg ) )
     }
 
+
+    method equals ($other) { $other isa __CLASS__ && $msg->equals( $other->msg ) }
     method stringify {
         sprintf '(exception %s)' => $msg->stringify;
     }
@@ -267,6 +332,13 @@ class MXCL::Term::Applicative::Native :isa(MXCL::Term::Applicative) {
         $class->new( name => $name, params => $params, body => $body )
     }
 
+    method equals ($other) {
+        $other isa __CLASS__
+            && $name->equals( $other->name )
+                && $params->equals( $other->params )
+                    && refaddr $body == refaddr $other->body;
+    }
+
     method stringify {
         sprintf '(native[%s]applicative)' => $name->stringify
     }
@@ -280,6 +352,13 @@ class MXCL::Term::Operative::Native :isa(MXCL::Term::Operative) {
     sub CREATE ($class, $name, $params, $body) {
         Sub::Util::set_subname( $name->ident, $body );
         $class->new( name => $name, params => $params, body => $body )
+    }
+
+    method equals ($other) {
+        $other isa __CLASS__
+            && $name->equals( $other->name )
+                && $params->equals( $other->params )
+                    && refaddr $body == refaddr $other->body;
     }
 
     method stringify {
@@ -296,6 +375,12 @@ class MXCL::Term::Lambda :isa(MXCL::Term::Applicative) {
         $class->new( params => $params, body => $body, env => $env )
     }
 
+    method equals ($other) {
+        $other isa __CLASS__
+            && $params->equals( $other->params )
+                && $body->equals( $other->body );
+    }
+
     method stringify {
         sprintf '(lambda %s %s)' => $params->stringify, $body->stringify;
     }
@@ -308,6 +393,12 @@ class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
 
     sub CREATE ($class, $params, $body, $env) {
         $class->new( params => $params, body => $body, env => $env )
+    }
+
+    method equals ($other) {
+        $other isa __CLASS__
+            && $params->equals( $other->params )
+                && $body->equals( $other->body );
     }
 
     method stringify {

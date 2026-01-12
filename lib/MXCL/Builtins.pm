@@ -22,8 +22,12 @@ sub get_core_set {
     # --------------------------------------------------------------------------
     $BIFS //= +[
         # ----------------------------------------------------------------------
-        # Type Predicates
+        # Predicates
         # ----------------------------------------------------------------------
+
+        lift_applicative('eq?', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
+            return MXCL::Term::Bool->CREATE( $lhs->equals($rhs) )
+        }),
 
         lift_applicative('isa?', [qw[ value type ]], sub ($env, $value, $type) {
             return MXCL::Term::Str->CREATE( $value->type eq $type )
@@ -56,7 +60,6 @@ sub get_core_set {
         lift_type_predicate('operative?', 'MXCL::Term::Operative'),
         lift_type_predicate('applicative-native?', 'MXCL::Term::Operative::Native'),
         lift_type_predicate('fexpr?',  'MXCL::Term::FExpr'),
-
 
         # ----------------------------------------------------------------------
         # Coercing

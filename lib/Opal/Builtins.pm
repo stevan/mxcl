@@ -59,6 +59,14 @@ sub get_core_set {
 
 
         # ----------------------------------------------------------------------
+        # Coercing
+        # ----------------------------------------------------------------------
+
+        'numify'    => lift_applicative('numify',    [qw[ value ]], sub ($env, $value) { Opal::Term::Num->CREATE( $value->numify ) }),
+        'stringify' => lift_applicative('stringify', [qw[ value ]], sub ($env, $value) { Opal::Term::Str->CREATE( $value->stringify ) }),
+        'boolify'   => lift_applicative('boolify',   [qw[ value ]], sub ($env, $value) { Opal::Term::Bool->CREATE( $value->boolify ) }),
+
+        # ----------------------------------------------------------------------
         # Artithmetic
         # ----------------------------------------------------------------------
 

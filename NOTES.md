@@ -2,32 +2,17 @@
 # NOTES
 <!----------------------------------------------------------------------------->
 
-## Opal
+## Effect::IO
 
-- need top-level interpreter
-- HOST handling
-
-## Environment 
-
-- make it composable, with capabilities
+-e -f -d -s -x
+open close read readline slurp write spew
+opendir closedir readdir
 
 
-## Terms
+# Machine & Strand
 
-- add a FREE for destroying things
-- add a DESTRUCT (or better name) for destructuring
-
-
-
-
-
-
-
-
-
-
-
-
+- add an on_error to Machine
+- Strand also populates this for error handling
 
 
 

@@ -11,22 +11,16 @@ use Opal::Strand;
 
 my $source = q[
 
-    (list/new
-        [ 10 20 [ 30 40 ] ]
-        @[ 10 [ 20 30 ] 200 @[1 2 3] ]
-        %{
-            :foo 10
-            :bar [ 20 30 ]
-            :gorch @[ 0 0 0 0 ]
-        }
-    )
+    (say "GOT: " (+ (numify (readline)) 20))
+
+
 
 ];
 
 my $kont = Opal::Strand->new->load($source)->run;
 isa_ok($kont, 'Opal::Term::Kontinue::Host');
 
-is($kont->effect, 'SYS.exit', '... expected normal exit');
+isa_ok($kont->effect, 'Opal::Effect::Halt', '... expected normal exit');
 
 my ($result) = $kont->spill_stack();
 

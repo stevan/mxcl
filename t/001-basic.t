@@ -42,7 +42,7 @@ my $source = q[
 my $kont = Opal::Strand->new->load($source)->run;
 isa_ok($kont, 'Opal::Term::Kontinue::Host');
 
-is($kont->effect, 'SYS.exit', '... expected normal exit');
+isa_ok($kont->effect, 'Opal::Effect::Halt', '... expected normal exit');
 
 my ($list) = $kont->spill_stack();
 

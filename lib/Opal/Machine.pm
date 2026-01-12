@@ -4,12 +4,14 @@ use experimental qw[ class switch try ];
 
 use Opal::Term;
 use Opal::Term::Kontinue;
+use Opal::Effect;
 
 class Opal::Term::Runtime::Exception :isa(Opal::Term::Exception) {}
 
 class Opal::Machine {
     field $program :param :reader;
     field $env     :param :reader;
+    field $on_exit :param :reader;
 
     field $queue :reader;
     field $ticks :reader;
@@ -17,7 +19,7 @@ class Opal::Machine {
     ADJUST {
         $ticks = 0;
         $queue = [
-            Opal::Term::Kontinue::Host->new( effect => 'SYS.exit', env => $env ),
+            $on_exit,
             reverse map {
                 Opal::Term::Kontinue::Eval::Expr->new(
                     expr => $_,
@@ -56,6 +58,11 @@ class Opal::Machine {
                 return Opal::Term::Kontinue::Return->new( value => $expr, env => $env )
             }
         }
+    }
+
+    method resume (@kont) {
+        push @$queue => @kont;
+        return $self->run_until_host;
     }
 
     method run_until_host {
@@ -123,7 +130,7 @@ class Opal::Machine {
                         # bubble up to the HOST if no catch is found
                         return Opal::Term::Kontinue::Host->new(
                             env    => $k->env,
-                            effect => 'SYS.error'
+                            effect => Opal::Effect::Error->new( error => $k->exception )
                         ) if scalar @$queue == 0;
                     }
                     when ('Catch') {

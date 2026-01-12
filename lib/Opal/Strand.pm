@@ -8,6 +8,9 @@ use Opal::Expander;
 use Opal::Machine;
 use Opal::Capabilities;
 
+use Opal::Effect;
+use Opal::Effect::TTY;
+
 class Opal::Strand {
     field $capabilities :reader :param = undef;
     field $tokenizer    :reader;
@@ -16,34 +19,37 @@ class Opal::Strand {
     field $machine      :reader;
 
     ADJUST {
-        $capabilities //= Opal::Capabilities->new;
+        $capabilities //= Opal::Capabilities->new(
+            effects => [
+                Opal::Effect::TTY->new
+            ]
+        );
     }
 
     method load ($source) {
         $tokenizer = Opal::Tokenizer->new( source => $source );
         $parser    = Opal::Parser->new( tokens => $tokenizer->tokenize );
         $expander  = Opal::Expander->new( exprs => $parser->parse );
-        $machine   = Opal::Machine->new(
+
+        my $env  = $capabilities->new_environment;
+        $machine = Opal::Machine->new(
             program => $expander->expand,
-            env     => $capabilities->new_environment
+            env     => $env,
+            on_exit => Opal::Term::Kontinue::Host->new(
+                effect => Opal::Effect::Halt->new,
+                env => $env
+            )
         );
+
         $self;
     }
 
     method run {
-        my $kont = $machine->run_until_host;
-        return $kont;
+        my $host = $machine->run_until_host;
+        while (defined( my $kont = $host->effect->handles( $host ) )) {
+            $host = $machine->resume( @$kont );
+        }
+        return $host;
     }
 }
 
-__END__
-
-my @TTY = qw[
-    print say warn readline
-];
-
-my @IO = qw[
-    -e -f -d -s -x
-    open close read readline slurp write spew
-    opendir closedir readdir
-];

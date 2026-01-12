@@ -32,8 +32,8 @@ class Opal::Term::Kontinue :isa(Opal::Term) {
 }
 
 class Opal::Term::Kontinue::Host :isa(Opal::Term::Kontinue) {
-    field $effect  :param :reader;
-    field $options :param :reader = +{};
+    field $effect :param :reader;
+    field $config :param :reader = +{};
 
     method stringify {
         $self->format( sprintf ':effect %s' => $effect )

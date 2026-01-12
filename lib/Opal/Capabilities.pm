@@ -3,18 +3,24 @@ use v5.42;
 use experimental qw[ class switch ];
 
 use Opal::Term;
-use Opal::Term::Kontinue;
-use Opal::Machine;
 use Opal::Builtins;
+use Opal::Effect;
 
 class Opal::Capabilities {
-    field $env :param = undef;
+    field $root_env :param :reader = undef;
+    field $effects  :param :reader = +[];
 
     ADJUST {
-        $env //= Opal::Term::Environment->CREATE( Opal::Builtins::get_core_set->%* );
+        $root_env //= Opal::Term::Environment->CREATE(
+            Opal::Builtins::get_core_set->%*
+        );
     }
 
-    method new_environment { $env->derive }
+    method new_environment {
+        my $env = $root_env->derive;
+        foreach my $effect (@$effects) {
+            $env->define( $_->name, $_ ) foreach $effect->provides->@*;
+        }
+        return $env;
+    }
 }
-
-

@@ -49,11 +49,13 @@ class Opal::Term::Num :isa(Opal::Term::Literal) {
 
 class Opal::Term::Str :isa(Opal::Term::Literal) {
     method stringify { sprintf '"%s"' => $self->value }
+    method numify    { 0+$self->value }
     method boolify   { $self->value ne '' }
 }
 
 class Opal::Term::Bool :isa(Opal::Term::Literal) {
     method stringify { $self->value ? 'true' : 'false' }
+    method numify    { $self->value ? 1 : 0 }
     method boolify   { $self->value }
 }
 
@@ -96,6 +98,8 @@ class Opal::Term::Pair :isa(Opal::Term) {
 class Opal::Term::Nil  :isa(Opal::Term::Atom) {
 
     sub CREATE ($class) { $class->new }
+
+    method uncons { () }
 
     method stringify { '()' }
     method boolify   { false }

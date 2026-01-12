@@ -11,6 +11,7 @@ use MXCL::Capabilities;
 use MXCL::Effect;
 use MXCL::Effect::TTY;
 use MXCL::Effect::REPL;
+use MXCL::Effect::Require;
 
 class MXCL::Strand {
     field $capabilities :reader :param = undef;
@@ -24,6 +25,7 @@ class MXCL::Strand {
             effects => [
                 MXCL::Effect::TTY->new,
                 MXCL::Effect::REPL->new,
+                MXCL::Effect::Require->new,
             ]
         );
     }

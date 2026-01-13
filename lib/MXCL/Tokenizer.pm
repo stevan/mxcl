@@ -7,9 +7,8 @@ use MXCL::Term;
 use MXCL::Term::Parser;
 
 class MXCL::Tokenizer {
-    field $source :param :reader;
 
-    method tokenize {
+    method tokenize ($source) {
         my @tokens;
         my $line_no = 0;
         my $line_at = 0;

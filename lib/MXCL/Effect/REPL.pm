@@ -18,7 +18,7 @@ class MXCL::Effect::REPL :isa(MXCL::Effect) {
         $error  = \*STDERR,
     }
 
-    method handles ($k) {
+    method handles ($k, $strand) {
         given ($k->config->{operation}) {
             when ('repl') {
                 # print the old result if we have it
@@ -32,13 +32,7 @@ class MXCL::Effect::REPL :isa(MXCL::Effect) {
                 my $source = $input->getline;
 
                 # compile it ...
-                my $exprs = MXCL::Expander->new(
-                    exprs => MXCL::Parser->new(
-                        tokens => MXCL::Tokenizer->new(
-                            source => $source
-                        )->tokenize
-                    )->parse
-                )->expand;
+                my $kont = $strand->compiler->compile($source, $k->env);
 
                 # return the same continuation
                 # TODO - add history to this continuation
@@ -50,9 +44,7 @@ class MXCL::Effect::REPL :isa(MXCL::Effect) {
                             return $exception;
                         })
                     ),
-                    reverse map {
-                        MXCL::Term::Kontinue::Eval::Expr->new( env => $k->env, expr => $_ )
-                    } @$exprs
+                    @$kont
                 ]
             }
             default {

@@ -19,15 +19,7 @@ class MXCL::Machine {
 
     ADJUST {
         $ticks = 0;
-        $queue = [
-            $on_exit,
-            reverse map {
-                MXCL::Term::Kontinue::Eval::Expr->new(
-                    expr => $_,
-                    env  => $env,
-                )
-            } @$program
-        ];
+        $queue = [ $on_exit, @$program ];
     }
 
     method return_values (@values) {

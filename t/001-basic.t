@@ -11,7 +11,7 @@ use MXCL::Strand;
 
 my $source = q[
 
-    (def thirty 30)
+    (defvar thirty 30)
 
     (defun adder (x y) (+ x y))
 

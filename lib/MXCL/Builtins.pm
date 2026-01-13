@@ -194,7 +194,7 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # Defintions & Scopes
         # ----------------------------------------------------------------------
-        lift_operative('def', [qw[ name value ]], sub ($env, $name, $value) {
+        lift_operative('defvar', [qw[ name value ]], sub ($env, $name, $value) {
             return [
                 MXCL::Term::Kontinue::Define->new( name => $name, env => $env ),
                 MXCL::Term::Kontinue::Eval::Expr->new( expr => $value, env => $env ),

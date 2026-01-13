@@ -18,7 +18,7 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
         $error  = \*STDERR,
     }
 
-    method handles ($k) {
+    method handles ($k, $strand) {
         given ($k->config->{operation}) {
             when ('print') {
                 $output->print(map $_->stringify, $k->spill_stack());

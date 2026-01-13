@@ -1,6 +1,6 @@
 
-(def *count* 1)
-(def *fails* 0)
+(defvar *count* 1)
+(defvar *fails* 0)
 
 (defun diag (msg) (say "# " msg))
 
@@ -10,13 +10,15 @@
 (defun pass (msg)
     (do
         (say "ok " (stringify *count*) " - " msg)
-        (set! *count* (+ *count* 1))))
+        (set! *count* (+ *count* 1))
+        ()))
 
 (defun fail (msg)
     (do
         (say "not ok " *count* " - " msg)
         (set! *count* (+ *count* 1))
-        (set! *fails* (+ *fails* 1))))
+        (set! *fails* (+ *fails* 1))
+        ()))
 
 (defun ok (test msg)
     (if (boolify test) (pass msg) (fail msg)))
@@ -36,3 +38,5 @@
             (diag (~ (~ "looks like you failed " *fails*)
                      (~ " test(s) of " *count*))))
         (say (~ "1.." *count*))))
+
+()

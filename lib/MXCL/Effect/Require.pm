@@ -9,7 +9,7 @@ use MXCL::Effect;
 
 class MXCL::Effect::Require :isa(MXCL::Effect) {
 
-    method handles ($k) {
+    method handles ($k, $strand) {
         given ($k->config->{operation}) {
             when ('require') {
                 my $file   = $k->stack_pop();
@@ -17,21 +17,8 @@ class MXCL::Effect::Require :isa(MXCL::Effect) {
                 my $fh     = IO::File->new;
                 $fh->open($path, '<') or die "Cannot open file($path) because $!";
                 my $source = join '' => $fh->getlines;
-
                 # compile it ...
-                my $exprs = MXCL::Expander->new(
-                    exprs => MXCL::Parser->new(
-                        tokens => MXCL::Tokenizer->new(
-                            source => $source
-                        )->tokenize
-                    )->parse
-                )->expand;
-
-                return +[
-                    reverse map {
-                        MXCL::Term::Kontinue::Eval::Expr->new( env => $k->env, expr => $_ )
-                    } @$exprs
-                ]
+                return $strand->compiler->compile($source, $k->env);
             }
             default {
                 die "Unknown Operation: ".$k->config->{operation};

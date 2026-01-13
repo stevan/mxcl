@@ -8,9 +8,8 @@ use MXCL::Term;
 use MXCL::Term::Parser;
 
 class MXCL::Expander {
-    field $exprs :param :reader;
 
-    method expand {
+    method expand ($exprs) {
         return +[ map $self->expand_expression($_), @$exprs ]
     }
 

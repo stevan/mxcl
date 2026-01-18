@@ -13,7 +13,7 @@ our @EXPORT = @EXPORT_OK;
 sub eval_mxcl ($source) {
     my $kont = MXCL::Strand->new->load($source)->run;
     return undef unless $kont->effect isa MXCL::Effect::Halt;
-    my ($result) = $kont->spill_stack;
+    my ($result) = $kont->stack->splice(0);
     return $result;
 }
 

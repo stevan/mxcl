@@ -15,6 +15,6 @@ my $source = q[
 my $kont = MXCL::Strand->new->load($source)->run;
 isa_ok($kont, 'MXCL::Term::Kontinue::Host');
 isa_ok($kont->effect, 'MXCL::Effect::Halt', '... expected normal exit');
-my ($result) = $kont->spill_stack();
+my ($result) = $kont->stack->splice(0);
 say sprintf '%s : <%s>' => $_->stringify, blessed $_ foreach $result isa MXCL::Term::List ? $result->uncons : $result;
 done_testing;

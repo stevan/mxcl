@@ -44,7 +44,7 @@ isa_ok($kont, 'MXCL::Term::Kontinue::Host');
 
 isa_ok($kont->effect, 'MXCL::Effect::Halt', '... expected normal exit');
 
-my ($list) = $kont->spill_stack();
+my ($list) = $kont->stack->splice(0);
 
 is_deeply(
     [ map $_->value, $list->uncons ],

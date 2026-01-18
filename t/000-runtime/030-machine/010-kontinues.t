@@ -15,29 +15,29 @@ subtest 'Kontinue base class - stack operations' => sub {
     );
 
     # Stack is initially empty
-    my $popped = $k->stack_pop;
+    my $popped = $k->stack->pop;
     ok(!defined $popped, 'stack_pop from empty returns undef');
 
     # Push and pop
-    $k->stack_push(MXCL::Term::Num->CREATE(1));
-    $k->stack_push(MXCL::Term::Num->CREATE(2));
+    $k->stack->push(MXCL::Term::Num->CREATE(1));
+    $k->stack->push(MXCL::Term::Num->CREATE(2));
 
-    $popped = $k->stack_pop;
+    $popped = $k->stack->pop;
     ok($popped->equals(MXCL::Term::Num->CREATE(2)), 'pop returns last pushed');
 
-    $popped = $k->stack_pop;
+    $popped = $k->stack->pop;
     ok($popped->equals(MXCL::Term::Num->CREATE(1)), 'pop returns first pushed');
 
     # Spill stack
-    $k->stack_push(MXCL::Term::Num->CREATE(10));
-    $k->stack_push(MXCL::Term::Num->CREATE(20));
-    my @spilled = $k->spill_stack;
+    $k->stack->push(MXCL::Term::Num->CREATE(10));
+    $k->stack->push(MXCL::Term::Num->CREATE(20));
+    my @spilled = $k->stack->splice(0);
     is(scalar @spilled, 2, 'spill returns all');
     ok($spilled[0]->equals(MXCL::Term::Num->CREATE(10)), 'first spilled');
     ok($spilled[1]->equals(MXCL::Term::Num->CREATE(20)), 'second spilled');
 
     # Stack is now empty
-    @spilled = $k->spill_stack;
+    @spilled = $k->stack->splice(0);
     is(scalar @spilled, 0, 'stack empty after spill');
 };
 

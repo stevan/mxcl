@@ -198,6 +198,10 @@ class MXCL::Term::Array :isa(MXCL::Term) {
     method pop   { pop   @$elements }
     method shift { shift @$elements }
 
+    method splice ($offset, $length=undef) {
+        return splice @$elements, $offset unless defined $length;
+        return splice @$elements, $offset, $length;
+    }
 
     method equals ($other) {
         return false unless $other isa __CLASS__;
@@ -264,6 +268,8 @@ class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
     method is_root    { not defined $parent }
     method has_parent {     defined $parent }
 
+    # ...
+
     method define ($key, $value) {
         return $self->set($key, $value);
     }
@@ -279,6 +285,8 @@ class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
         return $self->parent->update($key, $value) if defined $parent;
         return;
     }
+
+    # ...
 
     method derive (%bindings) {
         __CLASS__->new( parent => $self, entries => \%bindings )

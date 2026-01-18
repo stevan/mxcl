@@ -187,12 +187,14 @@ sub get_core_set {
         lift_operative('do', [qw[ ...block ]], sub ($env, @exprs) {
             my $local = $env->derive;
             return [
-                reverse map {
+                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
+                (reverse map {
                     MXCL::Term::Kontinue::Eval::Expr->new(
                         env  => $local,
                         expr => $_
                     )
-                } @exprs
+                } @exprs),
+                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
             ]
         }),
         # ----------------------------------------------------------------------
@@ -230,9 +232,11 @@ sub get_core_set {
             my ($name, $value) = $binding->uncons;
             my $local = $env->derive;
             return [
+                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
                 MXCL::Term::Kontinue::Eval::Expr->new( expr => $body, env => $local ),
                 MXCL::Term::Kontinue::Define->new( name => $name, env => $local ),
                 MXCL::Term::Kontinue::Eval::Expr->new( expr => $value, env => $local ),
+                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
             ]
         }),
         # ----------------------------------------------------------------------
@@ -242,6 +246,7 @@ sub get_core_set {
         sub ($env, $cond, $if_true, $if_false) {
             my $local = $env->derive;
             return [
+                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
                 MXCL::Term::Kontinue::IfElse->new(
                     env       => $local,
                     condition => $cond,
@@ -251,7 +256,8 @@ sub get_core_set {
                 MXCL::Term::Kontinue::Eval::Expr->new(
                     env  => $local,
                     expr => $cond
-                )
+                ),
+                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
             ]
         }),
         # ----------------------------------------------------------------------
@@ -267,7 +273,9 @@ sub get_core_set {
         }),
         lift_operative('try', [qw[ body catch-handler ]], sub ($env, $expr, $handler) {
             my ($params, $body) = $handler->rest->uncons;
+            my $local = $env->derive;
             return [
+                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
                 MXCL::Term::Kontinue::Catch->new(
                     env     => $env,
                     handler => MXCL::Term::Lambda->new(
@@ -279,7 +287,8 @@ sub get_core_set {
                 MXCL::Term::Kontinue::Eval::Expr->new(
                     env  => $env,
                     expr => $expr
-                )
+                ),
+                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
             ]
         }),
 

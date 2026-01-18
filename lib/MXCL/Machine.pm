@@ -19,11 +19,16 @@ class MXCL::Machine {
 
     ADJUST {
         $ticks = 0;
-        $queue = [ $on_exit, @$program ];
+        $queue = [
+            $on_exit,
+            MXCL::Term::Kontinue::Context::Leave->new( env => $env ),
+            @$program,
+            MXCL::Term::Kontinue::Context::Enter->new( env => $env ),
+        ];
     }
 
     method return_values (@values) {
-        $queue->[-1]->stack_push( @values )
+        $queue->[-1]->stack->push( @values )
     }
 
     method evaluate_term ($expr, $env) {
@@ -74,7 +79,7 @@ class MXCL::Machine {
                         $self->return_values( $k->value )
                     }
                     when ('Mutate') {
-                        my $value = $k->stack_pop();
+                        my $value = $k->stack->pop();
                         my $name  = $k->name;
 
                         if (!$k->env->update( $k->name, $value )) {
@@ -91,12 +96,20 @@ class MXCL::Machine {
                         $self->return_values( $value );
                     }
                     when ('Define') {
-                        my $value = $k->stack_pop();
+                        my $value = $k->stack->pop();
                         $k->env->define( $k->name, $value );
                         $self->return_values( $value );
                     }
+                    when ('Context::Enter') {
+                        # pass values on ...
+                        $self->return_values( $k->stack->splice(0) );
+                    }
+                    when ('Context::Leave') {
+                        # pass values on ...
+                        $self->return_values( $k->stack->splice(0) );
+                    }
                     when ('IfElse') {
-                        my $condition = $k->stack_pop();
+                        my $condition = $k->stack->pop();
                         if ($condition->boolify) {
                             push @$queue =>
                                 # AND short/circuit
@@ -113,7 +126,10 @@ class MXCL::Machine {
                     }
                     when ('Throw') {
                         while (@$queue) {
-                            if ($queue->[-1] isa MXCL::Term::Kontinue::Catch) {
+                            if ($queue->[-1] isa MXCL::Term::Context::Leave) {
+                                # TODO - handle context exit in unwind
+                            }
+                            elsif ($queue->[-1] isa MXCL::Term::Kontinue::Catch) {
                                 $self->return_values( $k->exception );
                                 break;
                             } else {
@@ -122,18 +138,18 @@ class MXCL::Machine {
                         }
                         # bubble up to the HOST if no catch is found
                         if (scalar @$queue == 0) {
-                            $on_error->stack_push( $k->exception );
+                            $on_error->stack->push( $k->exception );
                             return $on_error
                         }
                     }
                     when ('Catch') {
-                        my $results = $k->stack_pop();
+                        my $results = $k->stack->pop();
                         if ($results isa MXCL::Term::Runtime::Exception) {
                             my $catcher = MXCL::Term::Kontinue::Apply::Applicative->new(
                                 env  => $k->env,
                                 call => $k->handler,
                             );
-                            $catcher->stack_push( $results );
+                            $catcher->stack->push( $results );
                             push @$queue => $catcher;
                         } else {
                             push @$queue => MXCL::Term::Kontinue::Return->new(
@@ -146,7 +162,7 @@ class MXCL::Machine {
                         push @$queue => $self->evaluate_term( $k->expr, $k->env );
                     }
                     when ('Eval::TOS') {
-                        my $to_eval = $k->stack_pop();
+                        my $to_eval = $k->stack->pop();
                         push @$queue => $self->evaluate_term( $to_eval, $k->env )
                     }
                     when ('Eval::Cons') {
@@ -169,11 +185,11 @@ class MXCL::Machine {
                             );
                         }
 
-                        $self->return_values( $k->spill_stack() );
+                        $self->return_values( $k->stack->splice(0) );
                         push @$queue => $self->evaluate_term( $list->first, $k->env );
                     }
                     when ('Apply::Expr') {
-                        my $call = $k->stack_pop();
+                        my $call = $k->stack->pop();
 
                         if ($call isa MXCL::Term::Operative) {
                             push @$queue => MXCL::Term::Kontinue::Apply::Operative->new(
@@ -216,14 +232,14 @@ class MXCL::Machine {
                         if ($call isa MXCL::Term::Applicative::Native) {
                             push @$queue => MXCL::Term::Kontinue::Return->new(
                                 env   => $k->env,
-                                value => $call->body->( $k->env, $k->spill_stack() ),
+                                value => $call->body->( $k->env, $k->stack->splice(0) ),
                             );
                         }
                         elsif ($call isa MXCL::Term::Lambda) {
                             my $lambda = $k->call;
 
                             my @params = $lambda->params->uncons;
-                            my @args   = $k->spill_stack;
+                            my @args   = $k->stack->splice(0);
 
                             my %bindings;
                             for (my $i = 0; $i < scalar @params; $i++) {

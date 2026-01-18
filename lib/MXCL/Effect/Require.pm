@@ -12,7 +12,7 @@ class MXCL::Effect::Require :isa(MXCL::Effect) {
     method handles ($k, $strand) {
         given ($k->config->{operation}) {
             when ('require') {
-                my $file   = $k->stack_pop();
+                my $file   = $k->stack->pop();
                 my $path   = './ext/'.$file->stringify;
                 my $fh     = IO::File->new;
                 $fh->open($path, '<') or die "Cannot open file($path) because $!";

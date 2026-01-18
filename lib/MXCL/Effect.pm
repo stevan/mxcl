@@ -24,7 +24,7 @@ class MXCL::Effect::Halt :isa(MXCL::Effect) {
 }
 
 class MXCL::Effect::Error :isa(MXCL::Effect) {
-    method handles  ($k, $strand) { die "ERROR!!!!", (join ', ' => map { $_->stringify } $k->spill_stack()),"\n" }
+    method handles  ($k, $strand) { die "ERROR!!!!", (join ', ' => map { $_->stringify } $k->stack->splice(0)),"\n" }
     # XXX - should this provide anything?
     method provides { +[] }
 }

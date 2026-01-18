@@ -17,16 +17,6 @@ class MXCL::Term::Parser::Token :isa(MXCL::Term::Str) {
     field $line  :param :reader = -1;
     field $pos   :param :reader = -1;
 
-    sub build ($class, $source, $start, $end, $line, $pos) {
-        $class->new(
-            value => $source,
-            start => $start,
-            end   => $end,
-            line  => $line,
-            pos   => $pos,
-        )
-    }
-
     method source { $self->value }
 
     method stringify {

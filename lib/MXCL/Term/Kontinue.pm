@@ -9,23 +9,13 @@ use MXCL::Term;
 # ------------------------------------------------------------------------------
 
 class MXCL::Term::Kontinue :isa(MXCL::Term) {
-    field $stack :param :reader = +[];
+    field $stack :param :reader = MXCL::Term::Array->new;
     field $env   :param :reader;
-
-    sub build ($class, %args) { $class->new( %args ) }
 
     method type { __CLASS__ =~ s/^MXCL\:\:Term\:\:Kontinue\:\://r }
 
-    method stack_pop       { pop  @$stack }
-    method stack_push (@e) { push @$stack => @e }
-    method spill_stack {
-        my @s = @$stack;
-        @$stack = ();
-        return @s;
-    }
-
     method format ($msg) {
-        sprintf '(K %s {%s} @[%s] %s)' => $self->type, $msg, (join ', ' => map $_->stringify, @$stack), $env->stringify;
+        sprintf '(K %s {%s} @[%s] %s)' => $self->type, $msg, $stack->stringify, $env->stringify;
     }
 
     method stringify { $self->format('') }
@@ -86,6 +76,9 @@ class MXCL::Term::Kontinue::Mutate :isa(MXCL::Term::Kontinue) {
         $self->format( sprintf ':name %s' => $name->stringify )
     }
 }
+
+class MXCL::Term::Kontinue::Context::Enter :isa(MXCL::Term::Kontinue) {}
+class MXCL::Term::Kontinue::Context::Leave :isa(MXCL::Term::Kontinue) {}
 
 class MXCL::Term::Kontinue::Return :isa(MXCL::Term::Kontinue) {
     field $value :param :reader;

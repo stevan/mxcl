@@ -1,3 +1,37 @@
+
+<!----------------------------------------------------------------------------->
+# TODO:
+<!----------------------------------------------------------------------------->
+    
+# Cleanup
+    
+Remove Capabilities for now, it is clutter and confusing
+    - and may not be the right place for it anyway
+    - the Strand shouldn't own it
+
+# More Homo
+
+Machine
+    - make queue into MXCL::Array 
+    - make ticks into MXCL::Num
+    
+FExprs 
+    - return MXCL::List (or perhaps Tuple) instead of ARRAY
+
+# Expose infra
+
+Tokenizer->tokenize 
+Parser->parse
+Expander->expand
+    - should take/return Term instead of ARRAYs ref
+    
+Then add builins
+    - (tokenize "...")     => List of Tokens
+    - (parse my-tokens)    => List of Compounds
+    - (expand my-tokens)   => List of Expr (Terms)
+    - (compile expression) => List of Kontinue
+    
+
 <!----------------------------------------------------------------------------->
 # NOTES
 <!----------------------------------------------------------------------------->

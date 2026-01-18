@@ -11,7 +11,7 @@ use MXCL::Strand;
 
 my $source = q[
 
-    (repl)
+    (print "Hello World")
 
 ];
 

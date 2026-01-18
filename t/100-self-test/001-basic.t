@@ -9,6 +9,42 @@ use Carp         qw[ confess ];
 
 use MXCL::Strand;
 
+# NOTE - these should all be converted in proper tests,
+# only the $source one runs for now, but the others
+# are known to work.
+
+my $defer = q[
+    (defer (lambda () (say "9. hoop!")))
+    {
+        (defer (lambda () (say "5. ho")))
+        {
+            (defer (lambda () (say "2. ho")))
+            (say "1. hey")
+            (defer (lambda () (say "3. ho")))
+        }
+        (defer (lambda () (say "6. ho")))
+        (say "4. hey")
+        (defer (lambda () (say "7. ho")))
+    }
+    (defer (lambda () (say "10. END!")))
+    (say "8. hi")
+];
+
+my $defer_w_expections = q[
+    (try
+        (do
+            (defer (lambda () (say "1. hello")))
+            {
+                (defer (lambda () (say "2. hello")))
+                (throw "ho!")
+            }
+        )
+        (catch (e)
+            (say e)
+        )
+    )
+];
+
 my $source = q[
 
     (defvar thirty 30)

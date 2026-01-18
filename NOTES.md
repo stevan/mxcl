@@ -14,9 +14,6 @@ Remove Capabilities for now, it is clutter and confusing
 Machine
     - make queue into MXCL::Array 
     - make ticks into MXCL::Num
-    
-FExprs 
-    - return MXCL::List (or perhaps Tuple) instead of ARRAY
 
 # Expose infra
 

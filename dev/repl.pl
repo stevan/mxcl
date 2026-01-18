@@ -8,25 +8,7 @@ use Data::Dumper qw[ Dumper ];
 use MXCL::Strand;
 
 my $source = q[
-
-    (defer (lambda () (say "9. hoop!")))
-
-    {
-        (defer (lambda () (say "5. ho")))
-        {
-            (defer (lambda () (say "2. ho")))
-            (say "1. hey")
-            (defer (lambda () (say "3. ho")))
-        }
-        (defer (lambda () (say "6. ho")))
-        (say "4. hey")
-        (defer (lambda () (say "7. ho")))
-    }
-
-    (defer (lambda () (say "10. END!")))
-
-    (say "8. hi")
-
+    (repl)
 ];
 
 my $kont = MXCL::Strand->new->load($source)->run;

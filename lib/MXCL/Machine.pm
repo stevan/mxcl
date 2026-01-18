@@ -153,17 +153,23 @@ class MXCL::Machine {
                         }
                     }
                     when ('Throw') {
+                        my @leave_konts;
                         while (@$queue) {
-                            if ($queue->[-1] isa MXCL::Term::Context::Leave) {
-                                # TODO - handle context exit in unwind
+                            if ($queue->[-1] isa MXCL::Term::Kontinue::Context::Leave) {
+                                push @leave_konts => pop @$queue;
                             }
                             elsif ($queue->[-1] isa MXCL::Term::Kontinue::Catch) {
-                                $self->return_values( $k->exception );
+                                if (@leave_konts) {
+                                    push @$queue => $k, @leave_konts;
+                                } else {
+                                    $self->return_values( $k->exception );
+                                }
                                 break;
                             } else {
                                 pop @$queue;
                             }
                         }
+
                         # bubble up to the HOST if no catch is found
                         if (scalar @$queue == 0) {
                             $on_error->stack->push( $k->exception );

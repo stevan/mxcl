@@ -263,7 +263,7 @@ class MXCL::Term::Hash :isa(MXCL::Term) {
 # ------------------------------------------------------------------------------
 
 class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
-    field $parent :param :reader = undef;
+    field $parent   :param :reader = undef;
 
     method is_root    { not defined $parent }
     method has_parent {     defined $parent }

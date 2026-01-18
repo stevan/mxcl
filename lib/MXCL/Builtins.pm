@@ -179,6 +179,7 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # Keywords
         # ----------------------------------------------------------------------
+
         lift_operative('quote', [qw[ quoted ]], sub ($env, $quoted) {
             return [
                 MXCL::Term::Kontinue::Return->new( value => $quoted, env => $env )
@@ -187,14 +188,16 @@ sub get_core_set {
         lift_operative('do', [qw[ ...block ]], sub ($env, @exprs) {
             my $local = $env->derive;
             return [
-                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
-                (reverse map {
-                    MXCL::Term::Kontinue::Eval::Expr->new(
-                        env  => $local,
-                        expr => $_
-                    )
-                } @exprs),
-                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
+                MXCL::Term::Kontinue::Context::Enter
+                ->new( env => $local )
+                ->wrap(
+                    reverse map {
+                        MXCL::Term::Kontinue::Eval::Expr->new(
+                            env  => $local,
+                            expr => $_
+                        )
+                    } @exprs
+                )
             ]
         }),
         # ----------------------------------------------------------------------
@@ -232,11 +235,13 @@ sub get_core_set {
             my ($name, $value) = $binding->uncons;
             my $local = $env->derive;
             return [
-                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
-                MXCL::Term::Kontinue::Eval::Expr->new( expr => $body, env => $local ),
-                MXCL::Term::Kontinue::Define->new( name => $name, env => $local ),
-                MXCL::Term::Kontinue::Eval::Expr->new( expr => $value, env => $local ),
-                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
+                MXCL::Term::Kontinue::Context::Enter
+                ->new( env => $local )
+                ->wrap(
+                    MXCL::Term::Kontinue::Eval::Expr->new( expr => $body, env => $local ),
+                    MXCL::Term::Kontinue::Define->new( name => $name, env => $local ),
+                    MXCL::Term::Kontinue::Eval::Expr->new( expr => $value, env => $local ),
+                )
             ]
         }),
         # ----------------------------------------------------------------------
@@ -246,18 +251,20 @@ sub get_core_set {
         sub ($env, $cond, $if_true, $if_false) {
             my $local = $env->derive;
             return [
-                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
-                MXCL::Term::Kontinue::IfElse->new(
-                    env       => $local,
-                    condition => $cond,
-                    if_true   => $if_true,
-                    if_false  => $if_false,
-                ),
-                MXCL::Term::Kontinue::Eval::Expr->new(
-                    env  => $local,
-                    expr => $cond
-                ),
-                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
+                MXCL::Term::Kontinue::Context::Enter
+                ->new( env => $local )
+                ->wrap(
+                    MXCL::Term::Kontinue::IfElse->new(
+                        env       => $local,
+                        condition => $cond,
+                        if_true   => $if_true,
+                        if_false  => $if_false,
+                    ),
+                    MXCL::Term::Kontinue::Eval::Expr->new(
+                        env  => $local,
+                        expr => $cond
+                    )
+                )
             ]
         }),
         # ----------------------------------------------------------------------
@@ -275,20 +282,22 @@ sub get_core_set {
             my ($params, $body) = $handler->rest->uncons;
             my $local = $env->derive;
             return [
-                MXCL::Term::Kontinue::Context::Leave->new( env => $local ),
-                MXCL::Term::Kontinue::Catch->new(
-                    env     => $env,
-                    handler => MXCL::Term::Lambda->new(
-                        params => $params,
-                        body   => $body,
-                        env    => $env
+                MXCL::Term::Kontinue::Context::Enter
+                ->new( env => $local )
+                ->wrap(
+                    MXCL::Term::Kontinue::Catch->new(
+                        env     => $env,
+                        handler => MXCL::Term::Lambda->new(
+                            params => $params,
+                            body   => $body,
+                            env    => $env
+                        ),
                     ),
-                ),
-                MXCL::Term::Kontinue::Eval::Expr->new(
-                    env  => $env,
-                    expr => $expr
-                ),
-                MXCL::Term::Kontinue::Context::Enter->new( env => $local ),
+                    MXCL::Term::Kontinue::Eval::Expr->new(
+                        env  => $env,
+                        expr => $expr
+                    )
+                )
             ]
         }),
 

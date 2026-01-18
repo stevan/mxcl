@@ -14,6 +14,11 @@ class MXCL::Term::Kontinue :isa(MXCL::Term) {
 
     method type { __CLASS__ =~ s/^MXCL\:\:Term\:\:Kontinue\:\://r }
 
+    method with_stack (@values) {
+        $stack->push(@values);
+        $self;
+    }
+
     method format ($msg) {
         sprintf '(K %s {%s} @[%s] %s)' => $self->type, $msg, $stack->stringify, $env->stringify;
     }
@@ -77,8 +82,38 @@ class MXCL::Term::Kontinue::Mutate :isa(MXCL::Term::Kontinue) {
     }
 }
 
-class MXCL::Term::Kontinue::Context::Enter :isa(MXCL::Term::Kontinue) {}
-class MXCL::Term::Kontinue::Context::Leave :isa(MXCL::Term::Kontinue) {}
+class MXCL::Term::Kontinue::Context::Enter :isa(MXCL::Term::Kontinue) {
+    field $leave :reader;
+
+    ADJUST {
+        $leave = MXCL::Term::Kontinue::Context::Leave->new(
+            env => $self->env
+        );
+    }
+
+    method wrap (@kontinuations) {
+        return ($leave, @kontinuations, $self)
+    }
+
+    method stringify {
+        $self->format( sprintf ':leave %s' => $leave->stringify )
+    }
+}
+
+class MXCL::Term::Kontinue::Context::Leave :isa(MXCL::Term::Kontinue) {
+    field $deferred :reader = MXCL::Term::Array->new;
+
+    method has_deferred { $deferred->length > 0 }
+
+    method defer ($callback) {
+        $deferred->push($callback);
+        return;
+    }
+
+    method stringify {
+        $self->format( sprintf ':deferred %s' => $deferred->stringify )
+    }
+}
 
 class MXCL::Term::Kontinue::Return :isa(MXCL::Term::Kontinue) {
     field $value :param :reader;

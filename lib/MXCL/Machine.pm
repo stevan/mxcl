@@ -21,9 +21,9 @@ class MXCL::Machine {
         $ticks = 0;
         $queue = [
             $on_exit,
-            MXCL::Term::Kontinue::Context::Leave->new( env => $env ),
-            @$program,
-            MXCL::Term::Kontinue::Context::Enter->new( env => $env ),
+            MXCL::Term::Kontinue::Context::Enter
+                ->new( env => $env )
+                ->wrap(@$program),
         ];
     }
 
@@ -103,10 +103,38 @@ class MXCL::Machine {
                     when ('Context::Enter') {
                         # pass values on ...
                         $self->return_values( $k->stack->splice(0) );
+                        # and define a local `defer` to capture
+                        $k->env->define(
+                            MXCL::Term::Sym->CREATE('defer'),
+                            MXCL::Builtins::lift_applicative('defer', [qw[ action ]], sub ($env, $action) {
+                                $k->leave->defer($action);
+                                return MXCL::Term::Unit->new;
+                            })
+                        );
                     }
                     when ('Context::Leave') {
-                        # pass values on ...
-                        $self->return_values( $k->stack->splice(0) );
+                        if ($k->has_deferred) {
+                            #say "HEY THERE!!!!!";
+                            #say "GOT ", $k->env->deferred->elements->@*;
+                            push @$queue => (
+                                MXCL::Term::Kontinue::Return->new(
+                                    value => $k->stack->shift,
+                                    env   => $k->env,
+                                )->with_stack(
+                                    $k->stack->splice(0)
+                                ),
+                                reverse map {
+                                    MXCL::Term::Kontinue::Apply::Applicative->new(
+                                        env  => $k->env,
+                                        call => $_,
+                                    )
+                                } $k->deferred->splice(0)
+                            );
+                        }
+                        else {
+                            # just pass values on ...
+                            $self->return_values( $k->stack->splice(0) );
+                        }
                     }
                     when ('IfElse') {
                         my $condition = $k->stack->pop();
@@ -145,12 +173,12 @@ class MXCL::Machine {
                     when ('Catch') {
                         my $results = $k->stack->pop();
                         if ($results isa MXCL::Term::Runtime::Exception) {
-                            my $catcher = MXCL::Term::Kontinue::Apply::Applicative->new(
+                            push @$queue => MXCL::Term::Kontinue::Apply::Applicative->new(
                                 env  => $k->env,
                                 call => $k->handler,
+                            )->with_stack(
+                                $results
                             );
-                            $catcher->stack->push( $results );
-                            push @$queue => $catcher;
                         } else {
                             push @$queue => MXCL::Term::Kontinue::Return->new(
                                 env   => $k->env,

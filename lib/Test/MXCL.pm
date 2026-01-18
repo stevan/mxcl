@@ -3,10 +3,15 @@ package Test::MXCL;
 use v5.42;
 use Exporter 'import';
 
+use IO::Scalar;
 use MXCL::Strand;
 use MXCL::Effect;
+use MXCL::Effect::TTY;
+use MXCL::Effect::REPL;
+use MXCL::Effect::Require;
+use MXCL::Capabilities;
 
-our @EXPORT_OK = qw( eval_mxcl eval_ok eval_throws );
+our @EXPORT_OK = qw( eval_mxcl eval_ok eval_throws eval_with_output );
 our @EXPORT = @EXPORT_OK;
 
 # Evaluate MXCL source and return the result Term (or undef on error)
@@ -31,6 +36,31 @@ sub eval_throws ($source) {
     } catch ($e) {
         return !!$e;
     }
+}
+
+# Evaluate MXCL source and capture TTY output
+sub eval_with_output ($source) {
+    my $output = '';
+    my $output_fh = IO::Scalar->new(\$output);
+
+    # Create custom TTY effect with captured output
+    my $tty = MXCL::Effect::TTY->new(output => $output_fh);
+    my $caps = MXCL::Capabilities->new(
+        effects => [
+            $tty,
+            MXCL::Effect::REPL->new,
+            MXCL::Effect::Require->new,
+        ]
+    );
+
+    my $strand = MXCL::Strand->new(capabilities => $caps);
+    my $kont = $strand->load($source)->run;
+
+    return {
+        kont   => $kont,
+        output => $output,
+        ok     => $kont->effect isa MXCL::Effect::Halt,
+    };
 }
 
 1;

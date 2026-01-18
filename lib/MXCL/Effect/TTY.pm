@@ -13,9 +13,9 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
     field $error  :param :reader = undef;
 
     ADJUST {
-        $input  = \*STDIN,
-        $output = \*STDOUT,
-        $error  = \*STDERR,
+        $input  //= \*STDIN;
+        $output //= \*STDOUT;
+        $error  //= \*STDERR;
     }
 
     method handles ($k, $strand) {

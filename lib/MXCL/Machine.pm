@@ -160,7 +160,16 @@ class MXCL::Machine {
                             }
                             elsif ($queue->[-1] isa MXCL::Term::Kontinue::Catch) {
                                 if (@leave_konts) {
-                                    push @$queue => $k, @leave_konts;
+                                    push @$queue => $k, map {
+                                        MXCL::Term::Kontinue::Catch->new(
+                                            env     => $_->env,
+                                            handler => MXCL::Builtins::lift_applicative('catch-leave-context',
+                                                [qw[ exception ]], sub ($env, $exception) {
+                                                return $k->exception->chain( $exception );
+                                            })
+                                        ),
+                                        $_
+                                    } reverse @leave_konts;
                                 } else {
                                     $self->return_values( $k->exception );
                                 }

@@ -45,6 +45,26 @@ my $defer_w_expections = q[
     )
 ];
 
+my $defer_w_expections_inside_defer = q[
+    (try
+        (do
+            (defer (lambda () (say "2. hey")))
+            (defer (lambda () (throw "4. goodbye!!!")))
+            {
+                (defer (lambda () (say "1. hello")))
+                (defer (lambda () (throw "3. goodbye")))
+                (throw "5. ho!")
+            }
+        )
+        (catch (e)
+            (do
+                (say (~ "ERROR: " e))
+                e)
+
+        )
+    )
+];
+
 my $source = q[
 
     (defvar thirty 30)

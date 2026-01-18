@@ -306,6 +306,7 @@ class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
 
 class MXCL::Term::Exception :isa(MXCL::Term) {
     field $msg :param :reader;
+    field @chained;
 
     sub CREATE ($class, $msg) { $class->new( msg => $msg ) }
 
@@ -313,10 +314,14 @@ class MXCL::Term::Exception :isa(MXCL::Term) {
         die $class->new( msg => blessed $msg ? $msg : MXCL::Term::Str->new( value => $msg ) )
     }
 
+    method chain (@exceptions) { push @chained => @exceptions }
 
     method equals ($other) { $other isa __CLASS__ && $msg->equals( $other->msg ) }
     method stringify {
-        sprintf '(exception %s)' => $msg->stringify;
+        return sprintf '(exception %s :chained(%s))' =>
+            $msg->stringify, join ', ' => map $_->stringify, @chained
+            if @chained;
+        return sprintf '(exception %s)' => $msg->stringify;
     }
 }
 

@@ -7,8 +7,6 @@ use Sub::Util ();
 # ------------------------------------------------------------------------------
 
 class MXCL::Term {
-    use overload '""' => 'stringify';
-
     method identity { $self }
 
     method type { __CLASS__ =~ s/^MXCL\:\:Term\:\://r }
@@ -77,7 +75,7 @@ class MXCL::Term::Word :isa(MXCL::Term::Atom) {
 
     sub CREATE ($class, $ident) { $class->new( ident => $ident ) }
 
-    method equals ($other) { $other isa MXCL::Term::Word && $other->ident == $self->ident }
+    method equals ($other) { $other isa MXCL::Term::Word && $other->ident eq $self->ident }
     method stringify { $ident }
 }
 

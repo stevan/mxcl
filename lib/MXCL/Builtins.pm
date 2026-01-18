@@ -179,7 +179,11 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # Keywords
         # ----------------------------------------------------------------------
-        lift_applicative('quote', [qw[ quoted ]], sub ($env, $quoted) { $quoted }),
+        lift_operative('quote', [qw[ quoted ]], sub ($env, $quoted) {
+            return [
+                MXCL::Term::Kontinue::Return->new( value => $quoted, env => $env )
+            ]
+        }),
         lift_operative('do', [qw[ ...block ]], sub ($env, @exprs) {
             my $local = $env->derive;
             return [

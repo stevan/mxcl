@@ -5,14 +5,11 @@ use experimental qw[ class switch ];
 
 use Test::More;
 use Data::Dumper qw[ Dumper ];
-use Carp         qw[ confess ];
 
 use MXCL::Strand;
 
 my $source = q[
-
-    (print "Hello World")
-
+    (repl)
 ];
 
 my $kont = MXCL::Strand->new->load($source)->run;

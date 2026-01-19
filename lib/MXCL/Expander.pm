@@ -37,8 +37,15 @@ class MXCL::Expander {
 
     method expand_compound ($compound) {
         my @elements = $compound->elements->@*;
-        # expand empty lists
-        return MXCL::Term::Nil->new if scalar @elements == 0;
+        my $open = $compound->open->source;
+
+        # expand empty compounds based on delimiter type
+        if (scalar @elements == 0) {
+            return MXCL::Term::Tuple->CREATE() if $open eq "[";
+            return MXCL::Term::Array->CREATE() if $open eq "@[";
+            return MXCL::Term::Hash->CREATE()  if $open eq "%{";
+            return MXCL::Term::Nil->new; # () and {} with no content
+        }
 
         # expand pairs at compile time,
         # as they are constructive

@@ -50,7 +50,7 @@ sub get_core_set {
         lift_type_predicate('applicative-native?', 'MXCL::Term::Applicative::Native'),
         lift_type_predicate('lambda?',             'MXCL::Term::Lambda'),
         lift_type_predicate('operative?',          'MXCL::Term::Operative'),
-        lift_type_predicate('applicative-native?', 'MXCL::Term::Operative::Native'),
+        lift_type_predicate('operative-native?',   'MXCL::Term::Operative::Native'),
         lift_type_predicate('fexpr?',              'MXCL::Term::FExpr'),
 
         # ----------------------------------------------------------------------

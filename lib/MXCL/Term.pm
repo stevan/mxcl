@@ -47,7 +47,7 @@ class MXCL::Term::Literal :isa(MXCL::Term::Atom) {
 
 class MXCL::Term::Num :isa(MXCL::Term::Literal) {
     method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
-    method stringify { sprintf '%d' => $self->value }
+    method stringify { ''.$self->value }
     method numify    { $self->value }
     method boolify   { $self->value != 0 }
 }
@@ -244,7 +244,7 @@ class MXCL::Term::Hash :isa(MXCL::Term) {
     method set    ($key, $value) { $entries->{ $key->ident } = $value }
     method delete ($key)         { delete $entries->{ $key->ident } }
 
-    method keys   { map { Key->new( ident => $_ ) } keys %$entries }
+    method keys   { map { MXCL::Term::Key->new( ident => $_ ) } keys %$entries }
     method values { values %$entries }
 
     method equals ($other) {

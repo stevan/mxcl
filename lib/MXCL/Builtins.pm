@@ -12,14 +12,6 @@ sub get_core_set {
     # --------------------------------------------------------------------------
     # builder
     # --------------------------------------------------------------------------
-    # TODO:
-    #   - str/length
-    #   - tuple/size tuple/at
-    #   - array/get array/set! array/length
-    #       - array/push array/pop array/shift array/unshift
-    #   - hash/get hash/set!
-    #       - hash/exists hash/keys hash/values
-    # --------------------------------------------------------------------------
     $BIFS //= +[
         # ----------------------------------------------------------------------
         # Predicates
@@ -30,17 +22,17 @@ sub get_core_set {
         }),
 
         lift_applicative('isa?', [qw[ value type ]], sub ($env, $value, $type) {
-            return MXCL::Term::Str->CREATE( $value->type eq $type )
+            return MXCL::Term::Bool->CREATE( $value->type eq $type )
         }),
 
-        lift_type_predicate('atom?', 'MXCL::Term::Atom'),
+        lift_type_predicate('atom?',    'MXCL::Term::Atom'),
         lift_type_predicate('literal?', 'MXCL::Term::Literal'),
-        lift_type_predicate('bool?', 'MXCL::Term::Bool'),
-        lift_type_predicate('num?',  'MXCL::Term::Num'),
-        lift_type_predicate('str?',  'MXCL::Term::Str'),
-        lift_type_predicate('word?', 'MXCL::Term::Word'),
-        lift_type_predicate('sym?', 'MXCL::Term::Sym'),
-        lift_type_predicate('tag?', 'MXCL::Term::Tag'),
+        lift_type_predicate('bool?',    'MXCL::Term::Bool'),
+        lift_type_predicate('num?',     'MXCL::Term::Num'),
+        lift_type_predicate('str?',     'MXCL::Term::Str'),
+        lift_type_predicate('word?',    'MXCL::Term::Word'),
+        lift_type_predicate('sym?',     'MXCL::Term::Sym'),
+        lift_type_predicate('tag?',     'MXCL::Term::Tag'),
 
         lift_type_predicate('pair?',  'MXCL::Term::Pair'),
         lift_type_predicate('list?',  'MXCL::Term::List'),
@@ -50,16 +42,16 @@ sub get_core_set {
         lift_type_predicate('hash?',  'MXCL::Term::Hash'),
 
         lift_type_predicate('environment?', 'MXCL::Term::Environment'),
-        lift_type_predicate('exception?', 'MXCL::Term::Exception'),
-        lift_type_predicate('unit?', 'MXCL::Term::Unit'),
+        lift_type_predicate('exception?',   'MXCL::Term::Exception'),
+        lift_type_predicate('unit?',        'MXCL::Term::Unit'),
 
-        lift_type_predicate('callable?', 'MXCL::Term::Callable'),
-        lift_type_predicate('applicative?', 'MXCL::Term::Applicative'),
+        lift_type_predicate('callable?',           'MXCL::Term::Callable'),
+        lift_type_predicate('applicative?',        'MXCL::Term::Applicative'),
         lift_type_predicate('applicative-native?', 'MXCL::Term::Applicative::Native'),
-        lift_type_predicate('lambda?', 'MXCL::Term::Lambda'),
-        lift_type_predicate('operative?', 'MXCL::Term::Operative'),
+        lift_type_predicate('lambda?',             'MXCL::Term::Lambda'),
+        lift_type_predicate('operative?',          'MXCL::Term::Operative'),
         lift_type_predicate('applicative-native?', 'MXCL::Term::Operative::Native'),
-        lift_type_predicate('fexpr?',  'MXCL::Term::FExpr'),
+        lift_type_predicate('fexpr?',              'MXCL::Term::FExpr'),
 
         # ----------------------------------------------------------------------
         # Coercing
@@ -84,6 +76,20 @@ sub get_core_set {
         # ----------------------------------------------------------------------
 
         lift_literal_sub('~', [qw[ n m ]], sub ($n, $m) { $n . $m }, 'stringify', 'MXCL::Term::Str'),
+
+        lift_literal_sub('split', [qw[ sep string ]], sub ($sep, $string) {
+            map { MXCL::Term::Str->CREATE($_) } split( $sep =~ s/\./\\\./gr, $string );
+        }, 'stringify', 'MXCL::Term::List'),
+
+        lift_applicative('join', [qw[ sep list ]], sub ($env, $sep, $list) {
+            MXCL::Term::Str->CREATE(
+                join $sep->value,
+                    map $_->stringify,
+                        ($list isa MXCL::Term::List)
+                            ? $list->uncons
+                            : $list->elements
+            )
+        }),
 
         # ----------------------------------------------------------------------
         # Comparisons
@@ -158,23 +164,71 @@ sub get_core_set {
             ]
         }),
 
-        # ... constructors
-        lift_datatype_constructor('pair/new',  [qw[ fst snd     ]], 'MXCL::Term::Pair'),
-        lift_datatype_constructor('list/new',  [qw[ ...items    ]], 'MXCL::Term::List'),
-        lift_datatype_constructor('array/new', [qw[ ...items    ]], 'MXCL::Term::Array'),
-        lift_datatype_constructor('tuple/new', [qw[ ...elements ]], 'MXCL::Term::Tuple'),
-        lift_datatype_constructor('hash/new',  [qw[ ...entries  ]], 'MXCL::Term::Hash'),
-
         # ----------------------------------------------------------------------
         # Datatype Operations
         # ----------------------------------------------------------------------
 
         # pairs
+        # ----------------------------------------------------------------------
+        lift_datatype_constructor('pair/new',  [qw[ fst snd     ]], 'MXCL::Term::Pair'),
+
         lift_applicative('fst',  [qw[ pair ]], sub ($env, $pair) { $pair->fst }),
         lift_applicative('snd',  [qw[ pair ]], sub ($env, $pair) { $pair->snd }),
 
+        # lists
+        # ----------------------------------------------------------------------
+        lift_datatype_constructor('list/new',  [qw[ ...items    ]], 'MXCL::Term::List'),
+
         lift_applicative('first', [qw[ list ]], sub ($env, $list) { $list->first }),
         lift_applicative('rest',  [qw[ list ]], sub ($env, $list) { $list->rest }),
+
+        lift_applicative('list/length', [qw[ list ]], sub ($env, $list) { MXCL::Term::Num->CREATE( $list->length ) }),
+
+        # tuples
+        # ----------------------------------------------------------------------
+        lift_datatype_constructor('tuple/new', [qw[ ...elements ]], 'MXCL::Term::Tuple'),
+
+        lift_applicative('tuple/size', [qw[ tuple ]], sub ($env, $tuple) { MXCL::Term::Num->CREATE( $tuple->size ) }),
+        lift_applicative('tuple/at',   [qw[ tuple idx ]], sub ($env, $tuple, $idx) { $tuple->at( $idx ) }),
+
+        # arrays
+        # ----------------------------------------------------------------------
+        lift_datatype_constructor('array/new', [qw[ ...items    ]], 'MXCL::Term::Array'),
+
+        lift_applicative('array/length', [qw[ array ]], sub ($env, $array) { MXCL::Term::Num->CREATE( $array->length ) }),
+
+        lift_applicative('array/get',  [qw[ array idx ]],       sub ($env, $array, $idx) { $array->get( $idx ) }),
+        lift_applicative('array/set!', [qw[ array idx value ]], sub ($env, $array, $idx, $value) {
+            $array->set( $idx, $value )
+        }),
+
+        lift_applicative('array/pop',  [qw[ array ]],       sub ($env, $array) { $array->pop() }),
+        lift_applicative('array/push', [qw[ array value ]], sub ($env, $array, $value) {
+            $array->push( $value )
+        }),
+
+        lift_applicative('array/shift',   [qw[ array ]],       sub ($env, $array) { $array->shift() }),
+        lift_applicative('array/unshift', [qw[ array value ]], sub ($env, $array, $value) {
+            $array->unshift( $value )
+        }),
+
+        lift_applicative('array/splice', [qw[ array offset length ]], sub ($env, $array, $offset, $length=undef) {
+            MXCL::Term::Array->CREATE( $array->splice( $offset->value, $length ? $length->value : () ) );
+        }),
+
+        # hashes
+        # ----------------------------------------------------------------------
+        lift_datatype_constructor('hash/new',  [qw[ ...entries  ]], 'MXCL::Term::Hash'),
+
+        lift_applicative('hash/size', [qw[ hash ]], sub ($env, $hash) { MXCL::Term::Num->CREATE( $hash->size ) }),
+
+        lift_applicative('hash/exists?', [qw[ hash key ]], sub ($env, $hash, $key) { MXCL::Term::Bool->CREATE( $hash->has($key) ) }),
+        lift_applicative('hash/get',     [qw[ hash key ]], sub ($env, $hash, $key) { $hash->get($key) }),
+        lift_applicative('hash/set!',    [qw[ hash key value ]], sub ($env, $hash, $key, $value) { $hash->set($key, $value) }),
+        lift_applicative('hash/delete!', [qw[ hash key ]], sub ($env, $hash, $key) { $hash->delete($key) }),
+
+        lift_applicative('hash/keys',   [qw[ hash ]], sub ($env, $hash) { MXCL::Term::List->CREATE( $hash->keys ) }),
+        lift_applicative('hash/values', [qw[ hash ]], sub ($env, $hash) { MXCL::Term::List->CREATE( $hash->values ) }),
 
         # ----------------------------------------------------------------------
         # Keywords

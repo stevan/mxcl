@@ -161,6 +161,8 @@ class MXCL::Term::Tuple :isa(MXCL::Term) {
 
     method size { scalar @$elements }
 
+    method all_elements { @$elements }
+
     method at ($idx) { $elements->[ $idx->value ] }
 
     method equals ($other) {
@@ -188,6 +190,8 @@ class MXCL::Term::Array :isa(MXCL::Term) {
     sub CREATE ($class, @elements) { $class->new( elements => [ @elements ] ) }
 
     method length { scalar @$elements }
+
+    method all_elements { @$elements }
 
     method get ($idx)         { $elements->[ $idx->value ] }
     method set ($idx, $value) { $elements->[ $idx->value ] = $value }

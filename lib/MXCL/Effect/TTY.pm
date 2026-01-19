@@ -21,7 +21,7 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
     method handles ($k, $strand) {
         given ($k->config->{operation}) {
             when ('print') {
-                $output->print(map $_->stringify, $k->stack->splice(0));
+                $output->print(map $_->pprint, $k->stack->splice(0));
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
@@ -30,7 +30,7 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
                 ]
             }
             when ('say') {
-                $output->print((map $_->stringify, $k->stack->splice(0)), "\n");
+                $output->print((map $_->pprint, $k->stack->splice(0)), "\n");
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
@@ -39,7 +39,7 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
                 ]
             }
             when ('warn') {
-                $error->print((map $_->stringify, $k->stack->splice(0)), "\n");
+                $error->print((map $_->pprint, $k->stack->splice(0)), "\n");
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,

@@ -16,6 +16,7 @@ class MXCL::Term {
     method equals ($other) { ... }
 
     method stringify { die "Cannot stringify a ".__CLASS__ }
+    method pprint    { die "Cannot pprint a ".__CLASS__ }
     method numify    { die "Cannot numify a ".__CLASS__ }
     method boolify   { true }
 }
@@ -32,6 +33,7 @@ class MXCL::Term::Unit :isa(MXCL::Term) {
     method equals ($other) { $other isa __CLASS__ }
 
     method stringify { '(unit)' }
+    method pprint    { '(unit)' }
     method boolify   { false    }
 }
 
@@ -48,6 +50,7 @@ class MXCL::Term::Literal :isa(MXCL::Term::Atom) {
 class MXCL::Term::Num :isa(MXCL::Term::Literal) {
     method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
     method stringify { ''.$self->value }
+    method pprint    { ''.$self->value }
     method numify    { $self->value }
     method boolify   { $self->value != 0 }
 }
@@ -55,6 +58,7 @@ class MXCL::Term::Num :isa(MXCL::Term::Literal) {
 class MXCL::Term::Str :isa(MXCL::Term::Literal) {
     method equals ($other) { $other isa __CLASS__ && $other->value eq $self->value }
     method stringify { $self->value }
+    method pprint    { $self->value }
     method numify    { 0+$self->value }
     method boolify   { $self->value ne '' }
 }
@@ -62,6 +66,7 @@ class MXCL::Term::Str :isa(MXCL::Term::Literal) {
 class MXCL::Term::Bool :isa(MXCL::Term::Literal) {
     method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
     method stringify { $self->value ? 'true' : 'false' }
+    method pprint    { $self->value ? 'true' : 'false' }
     method numify    { $self->value ? 1 : 0 }
     method boolify   { $self->value }
 }
@@ -77,11 +82,13 @@ class MXCL::Term::Word :isa(MXCL::Term::Atom) {
 
     method equals ($other) { $other isa MXCL::Term::Word && $other->ident eq $self->ident }
     method stringify { $ident }
+    method pprint    { $ident }
 }
 
 class MXCL::Term::Sym :isa(MXCL::Term::Word) {}
 class MXCL::Term::Key :isa(MXCL::Term::Word) {
     method stringify { ':'.$self->ident }
+    method pprint    { ':'.$self->ident }
 }
 
 # ------------------------------------------------------------------------------
@@ -103,6 +110,9 @@ class MXCL::Term::Pair :isa(MXCL::Term) {
     method stringify {
         sprintf '(%s . %s)' => $fst->stringify, $snd->stringify;
     }
+    method pprint {
+        sprintf '(%s . %s)' => $fst->pprint, $snd->pprint;
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -117,6 +127,7 @@ class MXCL::Term::Nil  :isa(MXCL::Term::Atom) {
 
     method equals ($other) { $other isa __CLASS__ }
     method stringify { '()' }
+    method pprint    { '()' }
     method boolify   { false }
 }
 
@@ -148,6 +159,9 @@ class MXCL::Term::List :isa(MXCL::Term) {
     method stringify {
         sprintf '(%s)' => join ' ' => map $_->stringify, @$items;
     }
+    method pprint {
+        sprintf '(%s)' => join ' ' => map $_->pprint, @$items;
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -177,6 +191,9 @@ class MXCL::Term::Tuple :isa(MXCL::Term) {
 
     method stringify {
         sprintf '[%s]' => join ' ' => map $_->stringify, @$elements;
+    }
+    method pprint {
+        sprintf '[%s]' => join ' ' => map $_->pprint, @$elements;
     }
 }
 
@@ -220,6 +237,9 @@ class MXCL::Term::Array :isa(MXCL::Term) {
     method stringify {
         sprintf '@[%s]' => join ' ' => map $_->stringify, @$elements;
     }
+    method pprint {
+        sprintf '@[%s]' => join ' ' => map $_->pprint, @$elements;
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -260,6 +280,11 @@ class MXCL::Term::Hash :isa(MXCL::Term) {
     method stringify {
         sprintf '%%(%s)' => join ' ' => map {
             sprintf ':%s %s' => $_, $entries->{$_}->stringify
+        } keys %$entries;
+    }
+    method pprint {
+        sprintf '%%(%s)' => join ' ' => map {
+            sprintf ':%s %s' => $_, $entries->{$_}->pprint
         } keys %$entries;
     }
 }
@@ -327,6 +352,12 @@ class MXCL::Term::Exception :isa(MXCL::Term) {
             if @chained;
         return sprintf '(exception %s)' => $msg->stringify;
     }
+    method pprint {
+        return sprintf '(exception %s :chained(%s))' =>
+            $msg->pprint, join ', ' => map $_->pprint, @chained
+            if @chained;
+        return sprintf '(exception %s)' => $msg->pprint;
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -357,6 +388,9 @@ class MXCL::Term::Applicative::Native :isa(MXCL::Term::Applicative) {
     method stringify {
         sprintf '(native[%s]applicative)' => $name->stringify
     }
+    method pprint {
+        sprintf '(native[%s]applicative)' => $name->pprint
+    }
 }
 
 class MXCL::Term::Operative::Native :isa(MXCL::Term::Operative) {
@@ -379,6 +413,9 @@ class MXCL::Term::Operative::Native :isa(MXCL::Term::Operative) {
     method stringify {
         sprintf '(native[%s]operative)' => $name->stringify;
     }
+    method pprint {
+        sprintf '(native[%s]operative)' => $name->pprint;
+    }
 }
 
 class MXCL::Term::Lambda :isa(MXCL::Term::Applicative) {
@@ -399,6 +436,9 @@ class MXCL::Term::Lambda :isa(MXCL::Term::Applicative) {
     method stringify {
         sprintf '(lambda %s %s)' => $params->stringify, $body->stringify;
     }
+    method pprint {
+        sprintf '(lambda %s %s)' => $params->pprint, $body->pprint;
+    }
 }
 
 class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
@@ -418,6 +458,9 @@ class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
 
     method stringify {
         sprintf '(fexpr %s %s)' => $params->stringify, $body->stringify;
+    }
+    method pprint {
+        sprintf '(fexpr %s %s)' => $params->pprint, $body->pprint;
     }
 }
 

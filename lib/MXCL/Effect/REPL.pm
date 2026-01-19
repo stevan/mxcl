@@ -23,7 +23,7 @@ class MXCL::Effect::REPL :isa(MXCL::Effect) {
             when ('repl') {
                 # print the old result if we have it
                 if (defined(my $result = $k->stack->pop())) {
-                    $output->print( '> ', $result->stringify, "\n" ) ;
+                    $output->print( '> ', $result->pprint, "\n" ) ;
                     $k->env->define( MXCL::Term::Sym->CREATE('_') => $result );
                 }
 

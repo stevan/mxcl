@@ -18,7 +18,7 @@ class MXCL::Parser {
 
     method parse_expression ($tokens) {
         my $token = shift @$tokens;
-        #say "parse_expression ".$token->stringify;
+        #say "parse_expression ".$token->pprint;
         return $self->parse_compound(MXCL::Term::Parser::Compound->new( open => $token ), $tokens)
             if $token->value eq '('
             || $token->value eq '%{'
@@ -37,7 +37,7 @@ class MXCL::Parser {
     }
 
     method parse_compound ( $compound, $tokens ) {
-        #say "parse_compound ".$compound->stringify;
+        #say "parse_compound ".$compound->pprint;
         if ($tokens->[0]->value eq ')'
         ||  $tokens->[0]->value eq ']'
         ||  $tokens->[0]->value eq '}') {
@@ -67,7 +67,7 @@ class MXCL::Parser {
         }
         #say "... parse_expression ";
         my $expr = $self->parse_expression($tokens);
-        #say "... parse_compound EXPR:".$expr->stringify;
+        #say "... parse_compound EXPR:".$expr->pprint;
         return $self->parse_compound( $compound->push( $expr ), $tokens );
     }
 }

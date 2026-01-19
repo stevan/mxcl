@@ -8,10 +8,10 @@ use Data::Dumper qw[ Dumper ];
 use MXCL::Strand;
 
 my $source = q[
-    (defvar my-hash %{ :foo 10 :bar 20 })
+    (defvar my-hash %{ :foo 10 :bar 20 :gorch (lambda (x y) (+ x y)) })
 
-    (hash/set! my-hash :foo 100)
-    (hash/get my-hash :foo)
+
+    ((hash/get my-hash :gorch) (hash/get my-hash :foo) (hash/get my-hash :bar))
 ];
 
 my $kont = MXCL::Strand->new->load($source)->run;

@@ -71,6 +71,8 @@ my $source = q[
 
     (defun adder (x y) (+ x y))
 
+    (defvar my-hash %{ :foo 10 :bar 20 :gorch (lambda (x y) (+ x y)) })
+
     (list/new
         30
         thirty
@@ -91,6 +93,7 @@ my $source = q[
         (if "" false (+ 10 20))
         (if () false (+ 10 20))
         (let (x 10) (+ x 20))
+        ((hash/get my-hash :gorch) (hash/get my-hash :foo) (hash/get my-hash :bar))
     )
 
 ];

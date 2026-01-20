@@ -7,12 +7,23 @@ use Data::Dumper qw[ Dumper ];
 
 use MXCL::Strand;
 
-my $source = q[
-    (defvar my-hash %{ :foo 10 :bar 20 :gorch (lambda (x y) (+ x y)) })
+my $source = q/
 
+(defvar $point (object
+    (defvar x 0)
+    (defvar y 0)
 
-    ((hash/get my-hash :gorch) (hash/get my-hash :foo) (hash/get my-hash :bar))
-];
+    (defun set-x! (_x) (set! x _x))
+    (defun set-y! (_y) (set! y _y))
+))
+
+(say ($point :x))
+
+($point :set-x! 10)
+
+(say ($point :x))
+
+/;
 
 my $kont = MXCL::Strand->new->load($source)->run;
 

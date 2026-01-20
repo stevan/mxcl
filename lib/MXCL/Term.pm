@@ -464,4 +464,28 @@ class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
     }
 }
 
+class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
+    field $env :param :reader;
+
+    sub CREATE ($class, $name, $env) {
+        $class->new( env => $env )
+    }
+
+    method resolve ($method) {
+        return $env->lookup($method);
+    }
+
+    method equals ($other) {
+        $other isa __CLASS__
+            && $env->equals( $other->env );
+    }
+
+    method stringify {
+        sprintf '(opaque %s)' => $env->stringify;
+    }
+    method pprint {
+        sprintf '(opaque %s)' => $env->pprint;
+    }
+}
+
 # ------------------------------------------------------------------------------

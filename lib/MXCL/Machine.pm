@@ -68,8 +68,8 @@ class MXCL::Machine {
             $ticks++;
             my $k = pop @$queue;
             #warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
-            #warn "KONT :=> $k\n";
-            #warn join "\n  " => "QUEUE:", (reverse @$queue), "\n";
+            #warn "KONT :=> ",$k->pprint,"\n";
+            #warn join "\n  " => "QUEUE:", (reverse map $_->pprint, @$queue), "\n";
             try {
                 given ($k->type) {
                     when ('Host') {
@@ -247,10 +247,10 @@ class MXCL::Machine {
                                 call => $call,
                             );
 
-                            unless ($k->args isa MXCL::Term::Nil) {
+                            unless ($k->args->rest isa MXCL::Term::Nil) {
                                 push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
                                     env  => $k->env,
-                                    rest => $k->args
+                                    rest => $k->args->rest
                                 );
                             }
                         }
@@ -265,6 +265,38 @@ class MXCL::Machine {
                         }
                         elsif ($call isa MXCL::Term::FExpr) {
                             MXCL::Term::Runtime::Exception->throw('TODO - user-defined FExpr');
+                        }
+                        elsif ($call isa MXCL::Term::Opaque) {
+                            my $to_call = $k->args->first;
+                            my $method  = $call->resolve( $to_call );
+
+                            MXCL::Term::Runtime::Exception->throw(
+                                "Unable to resolve method ".$method->pprint." in ".$call->pprint
+                            ) unless defined $method;
+
+                            if ($method isa MXCL::Term::Callable) {
+
+                                push @$queue => (
+                                    MXCL::Term::Kontinue::Apply::Applicative->new(
+                                        call => $method,
+                                        env  => $k->env,
+                                    )
+                                );
+
+                                unless ($k->args->rest isa MXCL::Term::Nil) {
+                                    push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                                        env  => $k->env,
+                                        rest => $k->args->rest
+                                    );
+                                }
+                            } else {
+                                push @$queue => (
+                                    MXCL::Term::Kontinue::Return->new(
+                                        value => $method,
+                                        env   => $k->env,
+                                    )
+                                );
+                            }
                         }
                         else {
                             MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");

@@ -282,6 +282,7 @@ class MXCL::Term::Hash :isa(MXCL::Term) {
             sprintf ':%s %s' => $_, $entries->{$_}->stringify
         } keys %$entries;
     }
+
     method pprint {
         sprintf '%%(%s)' => join ' ' => map {
             sprintf ':%s %s' => $_, $entries->{$_}->pprint
@@ -326,6 +327,16 @@ class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
         return refaddr $parent == refaddr $other->parent
             if $parent->has_parent && $other->has_parent;
         return false;
+    }
+
+    method pprint ($indent='') {
+        sprintf "%%E(\n${indent}%s%s\n${indent})" =>
+            (join "\n${indent}" => map { sprintf '%s %s' => $_->pprint, ($self->get($_) ? $self->get($_)->type : 'WTF!') } $self->keys),
+            (defined $parent
+                ? ($parent->is_root
+                    ? "\n${indent}:parent %BIFS(...)"
+                    : "\n${indent}:parent ".$parent->pprint($indent . '    '))
+                : '');
     }
 }
 
@@ -472,7 +483,11 @@ class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
     }
 
     method resolve ($method) {
-        return $env->lookup($method);
+        #say "%%%%%%%%%%%%%%%%%%%%%%%%%%GOT: ",$method->type," -> ",$method->pprint;
+        my $m = $env->lookup($method);
+        #say "FOUND: ",$m->type," -> ",$m->pprint;
+        #say "IN: ",$self->pprint;
+        return $m;
     }
 
     method equals ($other) {

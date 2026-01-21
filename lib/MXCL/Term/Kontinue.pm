@@ -20,10 +20,10 @@ class MXCL::Term::Kontinue :isa(MXCL::Term) {
     }
 
     method format ($msg) {
-        sprintf '(K %s {%s} @[%s] %s)' => $self->type, $msg, $stack->stringify, $env->stringify;
+        sprintf '(K %s {%s} %s %s)' => $self->type, $msg, $stack->stringify, $env->stringify;
     }
     method pformat ($msg) {
-        sprintf '(K %s {%s} @[%s] %s)' => $self->type, $msg, $stack->pprint, $env->pprint;
+        sprintf '(K %s {%s} %s %s)' => $self->type, $msg, $stack->pprint, $env->pprint;
     }
 
     method stringify { $self->format('') }

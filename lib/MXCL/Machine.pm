@@ -247,10 +247,10 @@ class MXCL::Machine {
                                 call => $call,
                             );
 
-                            unless ($k->args->rest isa MXCL::Term::Nil) {
+                            unless ($k->args isa MXCL::Term::Nil) {
                                 push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
                                     env  => $k->env,
-                                    rest => $k->args->rest
+                                    rest => $k->args
                                 );
                             }
                         }
@@ -271,8 +271,12 @@ class MXCL::Machine {
                             my $method  = $call->resolve( $to_call );
 
                             MXCL::Term::Runtime::Exception->throw(
-                                "Unable to resolve method ".$method->pprint." in ".$call->pprint
+                                "Unable to resolve method ".$to_call->pprint." in ".$call->pprint
                             ) unless defined $method;
+
+                            #warn '@@@@@@@@@@@@@@@@@@@@@@@',$method->type," => ",$method->pprint;
+                            #warn "TO CALL: ",$to_call->type," => ",$to_call->pprint;
+                            #warn "   CALL: ",$call->type," => ",$call->pprint;
 
                             if ($method isa MXCL::Term::Callable) {
 
@@ -280,9 +284,10 @@ class MXCL::Machine {
                                     MXCL::Term::Kontinue::Apply::Applicative->new(
                                         call => $method,
                                         env  => $k->env,
-                                    )
+                                    )->with_stack($call)
                                 );
 
+                                #warn "!!!!!!!!!!!!!!!!!!!!!ARGS: ", $k->args->rest->type;
                                 unless ($k->args->rest isa MXCL::Term::Nil) {
                                     push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
                                         env  => $k->env,

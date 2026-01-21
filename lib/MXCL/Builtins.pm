@@ -361,23 +361,20 @@ sub get_core_set {
         # ----------------------------------------------------------------------
 
         lift_operative('object', [qw[ ...body ]], sub ($env, @body) {
-            my $local    = $env->derive;
             my $instance = $env->derive;
             return [
-                MXCL::Term::Kontinue::Context::Enter
-                ->new( env => $local )
-                ->wrap(
-                    MXCL::Term::Kontinue::Return->new(
-                        env   => $local,
-                        value => MXCL::Term::Opaque->new( env => $instance ),
-                    ),
-                    reverse map {
-                        MXCL::Term::Kontinue::Eval::Expr->new(
-                            env  => $instance,
-                            expr => $_
-                        )
-                    } @body
-                )
+                MXCL::Term::Kontinue::Return->new(
+                    env   => $env,
+                    value => MXCL::Term::Opaque->new(
+                        env => $instance
+                    )
+                ),
+                reverse map {
+                    MXCL::Term::Kontinue::Eval::Expr->new(
+                        env  => $instance,
+                        expr => $_
+                    )
+                } @body
             ]
         }),
     ];

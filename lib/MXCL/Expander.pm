@@ -23,16 +23,12 @@ class MXCL::Expander {
 
     method expand_token ($token) {
         my $src = $token->source;
-        return MXCL::Term::Bool->new( value => true  ) if $src eq 'true';
-        return MXCL::Term::Bool->new( value => false ) if $src eq 'false';
-        return MXCL::Term::Str->new(
-            value => substr($src, 1, length($src) - 2)
-        ) if $src =~ /^\".*\"$/;
-        return MXCL::Term::Num->new(
-            value => 0+$src
-        ) if looks_like_number($src);
-        return MXCL::Term::Key->new( ident => substr($src, 1) ) if $src =~ /^\:/;
-        return MXCL::Term::Sym->new( ident => $src );
+        return MXCL::Term::Bool->CREATE( true  ) if $src eq 'true';
+        return MXCL::Term::Bool->CREATE( false ) if $src eq 'false';
+        return MXCL::Term::Str->CREATE( substr($src, 1, length($src) - 2) ) if $src =~ /^\".*\"$/;
+        return MXCL::Term::Num->CREATE( 0+$src ) if looks_like_number($src);
+        return MXCL::Term::Key->CREATE( substr($src, 1) ) if $src =~ /^\:/;
+        return MXCL::Term::Sym->CREATE( $src );
     }
 
     method expand_compound ($compound) {

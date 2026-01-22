@@ -38,40 +38,6 @@ class MXCL::Term::Unit :isa(MXCL::Term) {
 }
 
 # ------------------------------------------------------------------------------
-# Literals
-# ------------------------------------------------------------------------------
-
-class MXCL::Term::Literal :isa(MXCL::Term::Atom) {
-    field $value :param :reader;
-
-    sub CREATE ($class, $value) { $class->new( value => $value ) }
-}
-
-class MXCL::Term::Num :isa(MXCL::Term::Literal) {
-    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
-    method stringify { ''.$self->value }
-    method pprint    { ''.$self->value }
-    method numify    { $self->value }
-    method boolify   { $self->value != 0 }
-}
-
-class MXCL::Term::Str :isa(MXCL::Term::Literal) {
-    method equals ($other) { $other isa __CLASS__ && $other->value eq $self->value }
-    method stringify { $self->value }
-    method pprint    { $self->value }
-    method numify    { 0+$self->value }
-    method boolify   { $self->value ne '' }
-}
-
-class MXCL::Term::Bool :isa(MXCL::Term::Literal) {
-    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
-    method stringify { $self->value ? 'true' : 'false' }
-    method pprint    { $self->value ? 'true' : 'false' }
-    method numify    { $self->value ? 1 : 0 }
-    method boolify   { $self->value }
-}
-
-# ------------------------------------------------------------------------------
 # Words
 # ------------------------------------------------------------------------------
 
@@ -318,6 +284,10 @@ class MXCL::Term::Environment :isa(MXCL::Term::Hash) {
 
     # ...
 
+    method capture {
+        __CLASS__->new( entries => $self->entries )
+    }
+
     method derive (%bindings) {
         __CLASS__->new( parent => $self, entries => \%bindings )
     }
@@ -351,7 +321,7 @@ class MXCL::Term::Exception :isa(MXCL::Term) {
     sub CREATE ($class, $msg) { $class->new( msg => $msg ) }
 
     sub throw ($class, $msg) {
-        die $class->new( msg => blessed $msg ? $msg : MXCL::Term::Str->new( value => $msg ) )
+        die $class->new( msg => blessed $msg ? $msg : MXCL::Term::Str->CREATE( $msg ) )
     }
 
     method chain (@exceptions) { push @chained => @exceptions }
@@ -381,7 +351,7 @@ class MXCL::Term::Operative   :isa(MXCL::Term::Callable) {}
 
 class MXCL::Term::Applicative::Native :isa(MXCL::Term::Applicative) {
     field $name   :param :reader;
-    field $params :param :reader = [];
+    field $params :param :reader;
     field $body   :param :reader;
 
     sub CREATE ($class, $name, $params, $body) {
@@ -406,7 +376,7 @@ class MXCL::Term::Applicative::Native :isa(MXCL::Term::Applicative) {
 
 class MXCL::Term::Operative::Native :isa(MXCL::Term::Operative) {
     field $name   :param :reader;
-    field $params :param :reader = [];
+    field $params :param :reader;
     field $body   :param :reader;
 
     sub CREATE ($class, $name, $params, $body) {
@@ -478,17 +448,7 @@ class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
 class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
     field $env :param :reader;
 
-    sub CREATE ($class, $name, $env) {
-        $class->new( env => $env )
-    }
-
-    method resolve ($method) {
-        #say "%%%%%%%%%%%%%%%%%%%%%%%%%%GOT: ",$method->type," -> ",$method->pprint;
-        my $m = $env->lookup($method);
-        #say "FOUND: ",$m->type," -> ",$m->pprint;
-        #say "IN: ",$self->pprint;
-        return $m;
-    }
+    method resolve ($method) { $env->lookup($method) }
 
     method equals ($other) {
         $other isa __CLASS__
@@ -496,11 +456,80 @@ class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
     }
 
     method stringify {
-        sprintf '(opaque %s)' => $env->stringify;
+        sprintf '(opaque %s)' => ($env // MXCL::Term::Nil->new)->stringify;
     }
     method pprint {
-        sprintf '(opaque %s)' => $env->pprint;
+        sprintf '(opaque %s)' => ($env // MXCL::Term::Nil->new)->pprint;
     }
+}
+
+# ------------------------------------------------------------------------------
+# Literals
+# ------------------------------------------------------------------------------
+
+class MXCL::Term::Literal :isa(MXCL::Term::Opaque) {}
+
+class MXCL::Term::Num :isa(MXCL::Term::Literal) {
+    field $value :param :reader;
+
+    sub CREATE ($class, $value) {
+        $class->new(
+            value => $value,
+            env   => MXCL::Term::Environment->new(
+                entries => +{
+                    map { $_->name->ident, $_ } MXCL::Builtins::get_Num_ops()
+                }
+            )
+        )
+    }
+
+    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
+    method stringify { ''.$self->value }
+    method pprint    { ''.$self->value }
+    method numify    { $self->value }
+    method boolify   { $self->value != 0 }
+}
+
+class MXCL::Term::Str :isa(MXCL::Term::Literal) {
+    field $value :param :reader;
+
+    sub CREATE ($class, $value) {
+        $class->new(
+            value => $value,
+            env   => MXCL::Term::Environment->new(
+                entries => +{
+                    map { $_->name->ident, $_ } MXCL::Builtins::get_Str_ops()
+                }
+            )
+        )
+    }
+
+    method equals ($other) { $other isa __CLASS__ && $other->value eq $self->value }
+    method stringify { $self->value }
+    method pprint    { $self->value }
+    method numify    { 0+$self->value }
+    method boolify   { $self->value ne '' }
+}
+
+class MXCL::Term::Bool :isa(MXCL::Term::Literal) {
+    field $value :param :reader;
+
+    sub CREATE ($class, $value) {
+        $class->new(
+            value => $value,
+            env   => MXCL::Term::Environment->new(
+                entries => +{
+                    map { $_->name->ident, $_ } MXCL::Builtins::get_Bool_ops()
+                }
+            )
+        )
+    }
+
+    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
+    method stringify { $self->value ? 'true' : 'false' }
+    method pprint    { $self->value ? 'true' : 'false' }
+    method numify    { $self->value ? 1 : 0 }
+    method boolify   { $self->value }
 }
 
 # ------------------------------------------------------------------------------

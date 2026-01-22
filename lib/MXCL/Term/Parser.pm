@@ -11,7 +11,8 @@ use MXCL::Term;
 
 class MXCL::Term::Parser::Exception :isa(MXCL::Term::Exception) {}
 
-class MXCL::Term::Parser::Token :isa(MXCL::Term::Str) {
+class MXCL::Term::Parser::Token :isa(MXCL::Term) {
+    field $value :param :reader;
     field $start :param :reader = -1;
     field $end   :param :reader = -1;
     field $line  :param :reader = -1;

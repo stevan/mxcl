@@ -40,8 +40,8 @@ class MXCL::Machine {
                     return MXCL::Term::Kontinue::Throw->new(
                         env       => $env,
                         exception => MXCL::Term::Runtime::Exception->new(
-                            msg => MXCL::Term::Str->new(
-                                value => "Could not find ".($expr->ident)." in Environment"
+                            msg => MXCL::Term::Str->CREATE(
+                                "Could not find ".($expr->ident)." in Environment"
                             )
                         )
                     );
@@ -86,8 +86,8 @@ class MXCL::Machine {
                             push @$queue => MXCL::Term::Kontinue::Throw->new(
                                 env       => $env,
                                 exception => MXCL::Term::Runtime::Exception->new(
-                                    msg => MXCL::Term::Str->new(
-                                        value => "Could not find ".($k->name->ident)." in Environment"
+                                    msg => MXCL::Term::Str->CREATE(
+                                        "Could not find ".($k->name->ident)." in Environment"
                                     )
                                 )
                             );
@@ -343,7 +343,7 @@ class MXCL::Machine {
             } catch ($e) {
                 unless ($e isa MXCL::Term::Runtime::Exception) {
                     $e = MXCL::Term::Runtime::Exception->new(
-                        msg => MXCL::Term::Str->new( value => "$e" )
+                        msg => MXCL::Term::Str->CREATE( "$e" )
                     );
                 }
 

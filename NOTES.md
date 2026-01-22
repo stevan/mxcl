@@ -9,12 +9,6 @@ Remove Capabilities for now, it is clutter and confusing
     - and may not be the right place for it anyway
     - the Strand shouldn't own it
 
-# More Homo
-
-Machine
-    - make queue into MXCL::Array 
-    - make ticks into MXCL::Num
-
 # Expose infra
 
 Tokenizer->tokenize 

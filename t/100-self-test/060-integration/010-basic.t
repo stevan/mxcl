@@ -13,6 +13,35 @@ use MXCL::Strand;
 # only the $source one runs for now, but the others
 # are known to work.
 
+my $prototype_oo = q{
+
+(defvar Point (object
+    (defun new ($class $x $y)
+        (object
+            (defvar x $x)
+            (defvar y $y)
+
+            (defun x! ($self $x) (set! x $x))
+            (defun y! ($self $y) (set! y $y))))
+
+    (defun xy ($self)
+        [ ($self x) ($self y) ])
+
+    (defun clear ($self)
+        (do
+            ($self x! 0)
+            ($self y! 0)))
+
+))
+
+(let ($point (Point new 20 30)) (do
+    (say ($point xy))
+    ($point clear)
+    (say ($point xy))
+))
+
+};
+
 my $defer = q[
     (defer (lambda () (say "9. hoop!")))
     {

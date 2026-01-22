@@ -8,6 +8,52 @@ use MXCL::Machine;
 
 our $BIFS;
 
+sub get_Bool_ops {
+    return (
+        lift_literal_sub('==', [qw[ n m ]], sub ($n, $m) { $n == $m }, 'boolify', 'MXCL::Term::Bool'),
+        lift_literal_sub('!=', [qw[ n m ]], sub ($n, $m) { $n != $m }, 'boolify', 'MXCL::Term::Bool'),
+
+        lift_literal_sub('&&', [qw[ n m ]], sub ($n, $m) { $n && $m }, 'boolify', 'MXCL::Term::Bool'),
+        lift_literal_sub('||', [qw[ n m ]], sub ($n, $m) { $n || $m }, 'boolify', 'MXCL::Term::Bool'),
+        lift_literal_sub('not',[qw[ n ]], sub ($n) { !$n }, 'boolify', 'MXCL::Term::Bool'),
+    )
+}
+
+sub get_Str_ops {
+    return (
+        lift_literal_sub('~', [qw[ n m ]], sub ($n, $m) { $n . $m }, 'stringify', 'MXCL::Term::Str'),
+
+        lift_literal_sub('eq', [qw[ n m ]], sub ($n, $m) { $n eq $m }, 'stringify', 'MXCL::Term::Bool'),
+        lift_literal_sub('ne', [qw[ n m ]], sub ($n, $m) { $n ne $m }, 'stringify', 'MXCL::Term::Bool'),
+        lift_literal_sub('gt', [qw[ n m ]], sub ($n, $m) { $n gt $m }, 'stringify', 'MXCL::Term::Bool'),
+        lift_literal_sub('ge', [qw[ n m ]], sub ($n, $m) { $n ge $m }, 'stringify', 'MXCL::Term::Bool'),
+        lift_literal_sub('lt', [qw[ n m ]], sub ($n, $m) { $n lt $m }, 'stringify', 'MXCL::Term::Bool'),
+        lift_literal_sub('le', [qw[ n m ]], sub ($n, $m) { $n le $m }, 'stringify', 'MXCL::Term::Bool'),
+
+        lift_literal_sub('cmp', [qw[ n m ]], sub ($n, $m) { $n cmp $m }, 'stringify', 'MXCL::Term::Num'),
+    )
+}
+
+sub get_Num_ops {
+    return (
+        lift_literal_sub('+', [qw[ n m ]], sub ($n, $m) { $n + $m }, 'numify', 'MXCL::Term::Num'),
+        lift_literal_sub('-', [qw[ n m ]], sub ($n, $m) { $n - $m }, 'numify', 'MXCL::Term::Num'),
+        lift_literal_sub('*', [qw[ n m ]], sub ($n, $m) { $n * $m }, 'numify', 'MXCL::Term::Num'),
+        lift_literal_sub('/', [qw[ n m ]], sub ($n, $m) { $n / $m }, 'numify', 'MXCL::Term::Num'),
+        lift_literal_sub('%', [qw[ n m ]], sub ($n, $m) { $n % $m }, 'numify', 'MXCL::Term::Num'),
+
+
+        lift_literal_sub('==', [qw[ n m ]], sub ($n, $m) { $n == $m }, 'numify', 'MXCL::Term::Bool'),
+        lift_literal_sub('!=', [qw[ n m ]], sub ($n, $m) { $n != $m }, 'numify', 'MXCL::Term::Bool'),
+        lift_literal_sub('>',  [qw[ n m ]], sub ($n, $m) { $n >  $m }, 'numify', 'MXCL::Term::Bool'),
+        lift_literal_sub('>=', [qw[ n m ]], sub ($n, $m) { $n >= $m }, 'numify', 'MXCL::Term::Bool'),
+        lift_literal_sub('<',  [qw[ n m ]], sub ($n, $m) { $n <  $m }, 'numify', 'MXCL::Term::Bool'),
+        lift_literal_sub('<=', [qw[ n m ]], sub ($n, $m) { $n <= $m }, 'numify', 'MXCL::Term::Bool'),
+
+        lift_literal_sub('<=>', [qw[ n m ]], sub ($n, $m) { $n <=> $m }, 'numify', 'MXCL::Term::Num'),
+    )
+}
+
 sub get_core_set {
     # --------------------------------------------------------------------------
     # builder
@@ -62,20 +108,8 @@ sub get_core_set {
         lift_applicative('boolify',   [qw[ value ]], sub ($env, $value) { MXCL::Term::Bool->CREATE( $value->boolify ) }),
 
         # ----------------------------------------------------------------------
-        # Artithmetic
-        # ----------------------------------------------------------------------
-
-        lift_literal_sub('+', [qw[ n m ]], sub ($n, $m) { $n + $m }, 'numify', 'MXCL::Term::Num'),
-        lift_literal_sub('-', [qw[ n m ]], sub ($n, $m) { $n - $m }, 'numify', 'MXCL::Term::Num'),
-        lift_literal_sub('*', [qw[ n m ]], sub ($n, $m) { $n * $m }, 'numify', 'MXCL::Term::Num'),
-        lift_literal_sub('/', [qw[ n m ]], sub ($n, $m) { $n / $m }, 'numify', 'MXCL::Term::Num'),
-        lift_literal_sub('%', [qw[ n m ]], sub ($n, $m) { $n % $m }, 'numify', 'MXCL::Term::Num'),
-
-        # ----------------------------------------------------------------------
         # String Operations
         # ----------------------------------------------------------------------
-
-        lift_literal_sub('~', [qw[ n m ]], sub ($n, $m) { $n . $m }, 'stringify', 'MXCL::Term::Str'),
 
         lift_literal_sub('split', [qw[ sep string ]], sub ($sep, $string) {
             map { MXCL::Term::Str->CREATE($_) } split( $sep =~ s/\./\\\./gr, $string );
@@ -95,23 +129,8 @@ sub get_core_set {
         # Comparisons
         # ----------------------------------------------------------------------
 
-        lift_literal_sub('==', [qw[ n m ]], sub ($n, $m) { $n == $m }, 'numify', 'MXCL::Term::Bool'),
-        lift_literal_sub('!=', [qw[ n m ]], sub ($n, $m) { $n != $m }, 'numify', 'MXCL::Term::Bool'),
-        lift_literal_sub('>',  [qw[ n m ]], sub ($n, $m) { $n >  $m }, 'numify', 'MXCL::Term::Bool'),
-        lift_literal_sub('>=', [qw[ n m ]], sub ($n, $m) { $n >= $m }, 'numify', 'MXCL::Term::Bool'),
-        lift_literal_sub('<',  [qw[ n m ]], sub ($n, $m) { $n <  $m }, 'numify', 'MXCL::Term::Bool'),
-        lift_literal_sub('<=', [qw[ n m ]], sub ($n, $m) { $n <= $m }, 'numify', 'MXCL::Term::Bool'),
-
-
-        lift_literal_sub('eq', [qw[ n m ]], sub ($n, $m) { $n eq $m }, 'stringify', 'MXCL::Term::Bool'),
-        lift_literal_sub('ne', [qw[ n m ]], sub ($n, $m) { $n ne $m }, 'stringify', 'MXCL::Term::Bool'),
-        lift_literal_sub('gt', [qw[ n m ]], sub ($n, $m) { $n gt $m }, 'stringify', 'MXCL::Term::Bool'),
-        lift_literal_sub('ge', [qw[ n m ]], sub ($n, $m) { $n ge $m }, 'stringify', 'MXCL::Term::Bool'),
-        lift_literal_sub('lt', [qw[ n m ]], sub ($n, $m) { $n lt $m }, 'stringify', 'MXCL::Term::Bool'),
-        lift_literal_sub('le', [qw[ n m ]], sub ($n, $m) { $n le $m }, 'stringify', 'MXCL::Term::Bool'),
-
-        lift_literal_sub('<=>', [qw[ n m ]], sub ($n, $m) { $n <=> $m }, 'numify', 'MXCL::Term::Num'),
-        lift_literal_sub('cmp', [qw[ n m ]], sub ($n, $m) { $n cmp $m }, 'stringify', 'MXCL::Term::Num'),
+        get_Num_ops(),
+        get_Str_ops(),
 
         # ----------------------------------------------------------------------
         # Logical
@@ -120,6 +139,7 @@ sub get_core_set {
         lift_applicative('not', [qw[ value ]], sub ($env, $value) {
             return MXCL::Term::Bool->CREATE( not( $value->boolify ) )
         }),
+
         lift_operative('and', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
             return [
                 MXCL::Term::Kontinue::IfElse->new(
@@ -134,6 +154,7 @@ sub get_core_set {
                 )
             ]
         }),
+
         lift_operative('or', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
             return [
                 MXCL::Term::Kontinue::IfElse->new(
@@ -366,7 +387,7 @@ sub get_core_set {
                 MXCL::Term::Kontinue::Return->new(
                     env   => $env,
                     value => MXCL::Term::Opaque->new(
-                        env => $instance
+                        env => $instance->capture
                     )
                 ),
                 reverse map {
@@ -375,6 +396,45 @@ sub get_core_set {
                         expr => $_
                     )
                 } @body
+            ]
+        }),
+
+        lift_operative('defclass', [qw[ name params ...body ]], sub ($env, $name, $params, @body) {
+            return +[
+                MXCL::Term::Kontinue::Define->new( name => $name, env => $env ),
+                MXCL::Term::Kontinue::Return->new(
+                    env => $env,
+                    value => MXCL::Term::Operative::Native->new(
+                        name   => $name,
+                        params => $params,
+                        body   => sub ($env, @args) {
+
+                            my @params = $params->uncons;
+                            my %bindings;
+                            for (my $i = 0; $i < scalar @params; $i++) {
+                                $bindings{ $params[$i]->ident } = $args[$i];
+                            }
+
+                            my $instance = $env->derive(%bindings);
+
+                            return [
+                                MXCL::Term::Kontinue::Return->new(
+                                    env   => $env,
+                                    value => MXCL::Term::Opaque->new(
+                                        #state => [ @args ],
+                                        env   => $instance->capture
+                                    )
+                                ),
+                                reverse map {
+                                    MXCL::Term::Kontinue::Eval::Expr->new(
+                                        env  => $instance,
+                                        expr => $_
+                                    )
+                                } @body
+                            ]
+                        }
+                    )
+                )
             ]
         }),
     ];

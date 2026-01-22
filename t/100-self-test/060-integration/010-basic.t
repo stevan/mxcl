@@ -13,32 +13,33 @@ use MXCL::Strand;
 # only the $source one runs for now, but the others
 # are known to work.
 
-my $prototype_oo = q{
+my $early_oo = q{
 
-(defvar Point (object
-    (defun new ($class $x $y)
-        (object
-            (defvar x $x)
-            (defvar y $y)
 
-            (defun x! ($self $x) (set! x $x))
-            (defun y! ($self $y) (set! y $y))))
+(defclass Point ($x $y)
+    (defvar x $x)
+    (defvar y $y)
 
-    (defun xy ($self)
-        [ ($self x) ($self y) ])
+    (defun x! ($self $x) (set! x $x))
+    (defun y! ($self $y) (set! y $y))
+)
 
-    (defun clear ($self)
-        (do
-            ($self x! 0)
-            ($self y! 0)))
+(let ($p (Point 10 20))
+    (do
+        (say ($p x))
+        ($p x! 100)
+        (say ($p x))
+    )
+)
 
-))
+(defvar $foo (object
+    (defvar x 0)
+    (defun add ($self m) (set! x (x + m)))))
 
-(let ($point (Point new 20 30)) (do
-    (say ($point xy))
-    ($point clear)
-    (say ($point xy))
-))
+($foo add 20)
+(say ($foo x))
+($foo add 220)
+(say ($foo x))
 
 };
 

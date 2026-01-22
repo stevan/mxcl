@@ -2,6 +2,21 @@
 <!----------------------------------------------------------------------------->
 # TODO:
 <!----------------------------------------------------------------------------->
+
+## OO-ficication
+
+So actually, all the Terms become Opaques. The only one which is slightly 
+problematic is Sym, because it can never EVAL to itself. But we can maybe 
+get around that with (quote). 
+
+The builtins need to be organized better, and perhaps even removing a bunch
+of them. 
+
+We also need to think about a class hierachy for all this, and how 
+inheritance will work. 
+
+
+<!----------------------------------------------------------------------------->
     
 # Cleanup
     

@@ -13,6 +13,12 @@ sub get_Bool_ops {
         lift_literal_sub('==', [qw[ n m ]], sub ($n, $m) { $n == $m }, 'boolify', 'MXCL::Term::Bool'),
         lift_literal_sub('!=', [qw[ n m ]], sub ($n, $m) { $n != $m }, 'boolify', 'MXCL::Term::Bool'),
 
+        # XXX - these are pure bool opreators, but they coerce the input
+        # not sure if this is right way, or if short-circuit is better
+        # and then the return type is any Term, perhaps this needs to be
+        # hoisted up to a Literal class of some kind, or just duplicated
+        # across the different Literal types (to avoid complexities from
+        # subclassing and other randomness)
         lift_literal_sub('&&', [qw[ n m ]], sub ($n, $m) { $n && $m }, 'boolify', 'MXCL::Term::Bool'),
         lift_literal_sub('||', [qw[ n m ]], sub ($n, $m) { $n || $m }, 'boolify', 'MXCL::Term::Bool'),
         lift_literal_sub('not',[qw[ n ]], sub ($n) { !$n }, 'boolify', 'MXCL::Term::Bool'),
@@ -63,10 +69,12 @@ sub get_core_set {
         # Predicates
         # ----------------------------------------------------------------------
 
+        # TOOD - add to Object
         lift_applicative('eq?', [qw[ lhs rhs ]], sub ($env, $lhs, $rhs) {
             return MXCL::Term::Bool->CREATE( $lhs->equals($rhs) )
         }),
 
+        # TOOD - add to Object
         lift_applicative('isa?', [qw[ value type ]], sub ($env, $value, $type) {
             return MXCL::Term::Bool->CREATE( $value->type eq $type )
         }),
@@ -103,6 +111,7 @@ sub get_core_set {
         # Coercing
         # ----------------------------------------------------------------------
 
+        # TOOD - add to Object
         lift_applicative('numify',    [qw[ value ]], sub ($env, $value) { MXCL::Term::Num->CREATE( $value->numify ) }),
         lift_applicative('stringify', [qw[ value ]], sub ($env, $value) { MXCL::Term::Str->CREATE( $value->stringify ) }),
         lift_applicative('boolify',   [qw[ value ]], sub ($env, $value) { MXCL::Term::Bool->CREATE( $value->boolify ) }),
@@ -111,10 +120,12 @@ sub get_core_set {
         # String Operations
         # ----------------------------------------------------------------------
 
+        # TOOD - add to Str with args reversed
         lift_literal_sub('split', [qw[ sep string ]], sub ($sep, $string) {
             map { MXCL::Term::Str->CREATE($_) } split( $sep =~ s/\./\\\./gr, $string );
         }, 'stringify', 'MXCL::Term::List'),
 
+        # TOOD - add to List,Array,Tuple and Hash(maybe)
         lift_applicative('join', [qw[ sep list ]], sub ($env, $sep, $list) {
             MXCL::Term::Str->CREATE(
                 join $sep->value,
@@ -421,8 +432,7 @@ sub get_core_set {
                                 MXCL::Term::Kontinue::Return->new(
                                     env   => $env,
                                     value => MXCL::Term::Opaque->new(
-                                        #state => [ @args ],
-                                        env   => $instance->capture
+                                        env => $instance->capture
                                     )
                                 ),
                                 reverse map {

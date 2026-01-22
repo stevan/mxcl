@@ -447,6 +447,10 @@ class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
     }
 }
 
+# ------------------------------------------------------------------------------
+# Literals
+# ------------------------------------------------------------------------------
+
 class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
     field $env :param :reader = undef;
 
@@ -469,7 +473,17 @@ class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
 # Literals
 # ------------------------------------------------------------------------------
 
-class MXCL::Term::Literal :isa(MXCL::Term::Opaque) {}
+class MXCL::Term::Literal :isa(MXCL::Term::Opaque) {
+
+    # FIXME - this is horrible, but re-arranging
+    # the Term class hierarchy too much work at
+    # the moment (it needs other help)
+    sub isa ($inv, $isa) {
+        return false if $isa eq 'MXCL::Term::Callable';
+        return true  if $isa eq 'MXCL::Term::Atom';
+        return $inv->SUPER::isa($isa);
+    }
+}
 
 class MXCL::Term::Num :isa(MXCL::Term::Literal) {
     field $value :param :reader;

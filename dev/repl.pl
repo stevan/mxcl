@@ -9,6 +9,7 @@ use MXCL::Strand;
 
 my $source = q|
 
+
 (defclass Point ($x $y)
     (defvar x $x)
     (defvar y $y)
@@ -19,12 +20,20 @@ my $source = q|
 
 (let ($p (Point 10 20))
     (do
-
         (say ($p x))
         ($p x! 100)
         (say ($p x))
     )
 )
+
+(defvar $foo (object
+    (defvar x 0)
+    (defun add ($self m) (set! x (x + m)))))
+
+($foo add 20)
+(say ($foo x))
+($foo add 220)
+(say ($foo x))
 
 |;
 

@@ -9,9 +9,22 @@ use MXCL::Strand;
 
 my $source = q|
 
+(defclass Point ($x $y)
+    (defvar x $x)
+    (defvar y $y)
 
+    (defun x! ($self $x) (set! x $x))
+    (defun y! ($self $y) (set! y $y))
+)
 
+(let ($p (Point 10 20))
+    (do
 
+        (say ($p x))
+        ($p x! 100)
+        (say ($p x))
+    )
+)
 
 |;
 

@@ -10,6 +10,7 @@ use MXCL::Effect::TTY;
 use MXCL::Effect::REPL;
 use MXCL::Effect::Require;
 use MXCL::Capabilities;
+use MXCL::Builtins;
 
 our @EXPORT_OK = qw( eval_mxcl eval_ok eval_throws eval_with_output );
 our @EXPORT = @EXPORT_OK;

@@ -4,6 +4,8 @@ use experimental qw[ class ];
 
 use Sub::Util ();
 
+require MXCL::Builtins;
+
 # ------------------------------------------------------------------------------
 
 class MXCL::Term {
@@ -446,7 +448,7 @@ class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
 }
 
 class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
-    field $env :param :reader;
+    field $env :param :reader = undef;
 
     method resolve ($method) { $env->lookup($method) }
 

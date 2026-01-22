@@ -278,7 +278,7 @@ class MXCL::Machine {
                             #warn "TO CALL: ",$to_call->type," => ",$to_call->pprint;
                             #warn "   CALL: ",$call->type," => ",$call->pprint;
 
-                            if ($method isa MXCL::Term::Callable) {
+                            if ($method isa MXCL::Term::Applicative) {
 
                                 push @$queue => (
                                     MXCL::Term::Kontinue::Apply::Applicative->new(

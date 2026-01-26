@@ -79,14 +79,20 @@ sub get_core_set {
             return MXCL::Term::Bool->CREATE( $value->type eq $type )
         }),
 
-        lift_type_predicate('atom?',    'MXCL::Term::Atom'),
-        lift_type_predicate('literal?', 'MXCL::Term::Literal'),
-        lift_type_predicate('bool?',    'MXCL::Term::Bool'),
-        lift_type_predicate('num?',     'MXCL::Term::Num'),
-        lift_type_predicate('str?',     'MXCL::Term::Str'),
-        lift_type_predicate('word?',    'MXCL::Term::Word'),
-        lift_type_predicate('sym?',     'MXCL::Term::Sym'),
-        lift_type_predicate('tag?',     'MXCL::Term::Tag'),
+        lift_type_predicate('atom?',        sub ($x) { $x->is_atom        }),
+        lift_type_predicate('literal?',     sub ($x) { $x->is_literal     }),
+        lift_type_predicate('callable?',    sub ($x) { $x->is_callable    }),
+        lift_type_predicate('applicative?', sub ($x) { $x->is_applicative }),
+        lift_type_predicate('operative?',   sub ($x) { $x->is_operative   }),
+        lift_type_predicate('opaque?',      sub ($x) { $x->is_opaque      }),
+
+        lift_type_predicate('bool?', 'MXCL::Term::Bool'),
+        lift_type_predicate('num?',  'MXCL::Term::Num'),
+        lift_type_predicate('str?',  'MXCL::Term::Str'),
+
+        lift_type_predicate('word?', 'MXCL::Term::Word'),
+        lift_type_predicate('sym?',  'MXCL::Term::Sym'),
+        lift_type_predicate('tag?',  'MXCL::Term::Tag'),
 
         lift_type_predicate('pair?',  'MXCL::Term::Pair'),
         lift_type_predicate('list?',  'MXCL::Term::List'),
@@ -99,13 +105,11 @@ sub get_core_set {
         lift_type_predicate('exception?',   'MXCL::Term::Exception'),
         lift_type_predicate('unit?',        'MXCL::Term::Unit'),
 
-        lift_type_predicate('callable?',           'MXCL::Term::Callable'),
-        lift_type_predicate('applicative?',        'MXCL::Term::Applicative'),
         lift_type_predicate('applicative-native?', 'MXCL::Term::Applicative::Native'),
-        lift_type_predicate('lambda?',             'MXCL::Term::Lambda'),
-        lift_type_predicate('operative?',          'MXCL::Term::Operative'),
         lift_type_predicate('operative-native?',   'MXCL::Term::Operative::Native'),
-        lift_type_predicate('fexpr?',              'MXCL::Term::FExpr'),
+
+        lift_type_predicate('lambda?', 'MXCL::Term::Lambda'),
+        lift_type_predicate('fexpr?',  'MXCL::Term::FExpr'),
 
         # ----------------------------------------------------------------------
         # Coercing
@@ -474,13 +478,13 @@ sub lift_datatype_constructor ($name, $params, $datatype) {
     )
 }
 
-sub lift_type_predicate ($name, $type) {
+sub lift_type_predicate ($name, $type_or_f) {
     return MXCL::Term::Applicative::Native->CREATE(
         MXCL::Term::Sym->CREATE( $name ),
-        MXCL::Term::List->CREATE( MXCL::Term::Key->CREATE( $type ) ),
-        sub ($env, $arg) {
-            MXCL::Term::Bool->CREATE( blessed $arg && $arg->isa($type) )
-        }
+        MXCL::Term::List->CREATE( MXCL::Term::Key->CREATE( 'x' ) ),
+        (ref $type_or_f eq 'CODE'
+            ? sub ($env, $arg) { MXCL::Term::Bool->CREATE( $type_or_f->($arg) ) }
+            : sub ($env, $arg) { MXCL::Term::Bool->CREATE( blessed $arg && $arg->isa($type_or_f) ) })
     )
 }
 

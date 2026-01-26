@@ -234,14 +234,14 @@ class MXCL::Machine {
                     when ('Apply::Expr') {
                         my $call = $k->stack->pop();
 
-                        if ($call isa MXCL::Term::Operative) {
+                        if ($call->is_operative) {
                             push @$queue => MXCL::Term::Kontinue::Apply::Operative->new(
                                 env  => $k->env,
                                 call => $call,
                                 args => $k->args,
                             );
                         }
-                        elsif ($call isa MXCL::Term::Applicative) {
+                        elsif ($call->is_applicative) {
                             push @$queue => MXCL::Term::Kontinue::Apply::Applicative->new(
                                 env  => $k->env,
                                 call => $call,
@@ -274,12 +274,7 @@ class MXCL::Machine {
                                 "Unable to resolve method ".$to_call->pprint." in ".$call->pprint
                             ) unless defined $method;
 
-                            #warn '@@@@@@@@@@@@@@@@@@@@@@@',$method->type," => ",$method->pprint;
-                            #warn "TO CALL: ",$to_call->type," => ",$to_call->pprint;
-                            #warn "   CALL: ",$call->type," => ",$call->pprint;
-
-                            if ($method isa MXCL::Term::Applicative) {
-
+                            if ($method->is_applicative) {
                                 push @$queue => (
                                     MXCL::Term::Kontinue::Apply::Applicative->new(
                                         call => $method,
@@ -287,7 +282,6 @@ class MXCL::Machine {
                                     )->with_stack($call)
                                 );
 
-                                #warn "!!!!!!!!!!!!!!!!!!!!!ARGS: ", $k->args->rest->type;
                                 unless ($k->args->rest isa MXCL::Term::Nil) {
                                     push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
                                         env  => $k->env,
@@ -304,7 +298,7 @@ class MXCL::Machine {
                             }
                         }
                         else {
-                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
+                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative -> ".$call->pprint);
                         }
                     }
                     when ('Apply::Applicative') {

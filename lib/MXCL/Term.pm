@@ -385,16 +385,16 @@ class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
 class MXCL::Term::Num :isa(MXCL::Term::Opaque) {
     field $value :param :reader;
 
-    sub CREATE ($class, $value) {
-        $class->new(
-            value => $value,
-            env   => MXCL::Term::Environment->new(
-                entries => +{
-                    map { $_->name->ident, $_ } MXCL::Builtins::get_Num_ops()
-                }
-            )
+    our $ENV;
+    sub get_local_env {
+        $ENV //= MXCL::Term::Environment->new(
+            entries => +{
+                map { $_->name->ident, $_ } MXCL::Builtins::get_Num_ops()
+            }
         )
     }
+
+    sub CREATE ($class, $value) { $class->new( value => $value, env => get_local_env() ) }
 
     method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
 
@@ -412,16 +412,16 @@ class MXCL::Term::Num :isa(MXCL::Term::Opaque) {
 class MXCL::Term::Str :isa(MXCL::Term::Opaque) {
     field $value :param :reader;
 
-    sub CREATE ($class, $value) {
-        $class->new(
-            value => $value,
-            env   => MXCL::Term::Environment->new(
-                entries => +{
-                    map { $_->name->ident, $_ } MXCL::Builtins::get_Str_ops()
-                }
-            )
+    our $ENV;
+    sub get_local_env {
+        $ENV //= MXCL::Term::Environment->new(
+            entries => +{
+                map { $_->name->ident, $_ } MXCL::Builtins::get_Str_ops()
+            }
         )
     }
+
+    sub CREATE ($class, $value) { $class->new( value => $value, env => get_local_env() ) }
 
     method equals ($other) { $other isa __CLASS__ && $other->value eq $self->value }
 
@@ -439,16 +439,16 @@ class MXCL::Term::Str :isa(MXCL::Term::Opaque) {
 class MXCL::Term::Bool :isa(MXCL::Term::Opaque) {
     field $value :param :reader;
 
-    sub CREATE ($class, $value) {
-        $class->new(
-            value => $value,
-            env   => MXCL::Term::Environment->new(
-                entries => +{
-                    map { $_->name->ident, $_ } MXCL::Builtins::get_Bool_ops()
-                }
-            )
+    our $ENV;
+    sub get_local_env {
+        $ENV //= MXCL::Term::Environment->new(
+            entries => +{
+                map { $_->name->ident, $_ } MXCL::Builtins::get_Bool_ops()
+            }
         )
     }
+
+    sub CREATE ($class, $value) { $class->new( value => $value, env => get_local_env() ) }
 
     method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
 

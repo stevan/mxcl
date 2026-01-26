@@ -19,8 +19,8 @@ subtest 'Lambda' => sub {
 
     my $lambda = MXCL::Term::Lambda->CREATE($params, $body, $env);
 
-    ok($lambda isa MXCL::Term::Applicative, 'Lambda isa Applicative');
-    ok($lambda isa MXCL::Term::Callable, 'Lambda isa Callable');
+    ok($lambda->is_applicative, 'Lambda isa Applicative');
+    ok($lambda->is_callable, 'Lambda isa Callable');
     ok($lambda->params->equals($params), 'params accessor');
     ok($lambda->body->equals($body), 'body accessor');
     is($lambda->env, $env, 'env accessor');
@@ -42,8 +42,8 @@ subtest 'FExpr' => sub {
 
     my $fexpr = MXCL::Term::FExpr->CREATE($params, $body, $env);
 
-    ok($fexpr isa MXCL::Term::Operative, 'FExpr isa Operative');
-    ok($fexpr isa MXCL::Term::Callable, 'FExpr isa Callable');
+    ok($fexpr->is_operative, 'FExpr isa Operative');
+    ok($fexpr->is_callable, 'FExpr isa Callable');
     ok($fexpr->params->equals($params), 'params accessor');
     ok($fexpr->body->equals($body), 'body accessor');
     is($fexpr->env, $env, 'env accessor');
@@ -62,8 +62,8 @@ subtest 'Applicative::Native' => sub {
 
     my $native = MXCL::Term::Applicative::Native->CREATE($name, $params, $body);
 
-    ok($native isa MXCL::Term::Applicative, 'Native isa Applicative');
-    ok($native isa MXCL::Term::Callable, 'Native isa Callable');
+    ok($native->is_applicative, 'Native isa Applicative');
+    ok($native->is_callable, 'Native isa Callable');
     ok($native->name->equals($name), 'name accessor');
     is($native->body, $body, 'body accessor');
     like($native->stringify, qr/native.*applicative/i, 'stringify');
@@ -81,8 +81,8 @@ subtest 'Operative::Native' => sub {
 
     my $native = MXCL::Term::Operative::Native->CREATE($name, $params, $body);
 
-    ok($native isa MXCL::Term::Operative, 'Native isa Operative');
-    ok($native isa MXCL::Term::Callable, 'Native isa Callable');
+    ok($native->is_operative, 'Native isa Operative');
+    ok($native->is_callable, 'Native isa Callable');
     ok($native->name->equals($name), 'name accessor');
     is($native->body, $body, 'body accessor');
     like($native->stringify, qr/native.*operative/i, 'stringify');
@@ -97,15 +97,15 @@ subtest 'Callable hierarchy' => sub {
     my $fexpr = MXCL::Term::FExpr->CREATE($params, $body, $env);
 
     # Type checks
-    ok($lambda isa MXCL::Term::Applicative, 'Lambda isa Applicative');
-    ok(!($lambda isa MXCL::Term::Operative), 'Lambda not isa Operative');
+    ok($lambda->is_applicative, 'Lambda isa Applicative');
+    ok(!($lambda->is_operative), 'Lambda not isa Operative');
 
-    ok($fexpr isa MXCL::Term::Operative, 'FExpr isa Operative');
-    ok(!($fexpr isa MXCL::Term::Applicative), 'FExpr not isa Applicative');
+    ok($fexpr->is_operative, 'FExpr isa Operative');
+    ok(!($fexpr->is_applicative), 'FExpr not isa Applicative');
 
     # Both are Callable
-    ok($lambda isa MXCL::Term::Callable, 'Lambda isa Callable');
-    ok($fexpr isa MXCL::Term::Callable, 'FExpr isa Callable');
+    ok($lambda->is_callable, 'Lambda isa Callable');
+    ok($fexpr->is_callable, 'FExpr isa Callable');
 };
 
 done_testing;

@@ -35,12 +35,6 @@ class MXCL::Term {
 # ... these are built at compile time
 # ==============================================================================
 
-class MXCL::Term::Atom :isa(MXCL::Term) {
-    sub CREATE ($, @) { die "ABSTRACT TERM!" }
-
-    method is_atom { true }
-}
-
 class MXCL::Term::Unit :isa(MXCL::Term) {
     sub CREATE ($class) { $class->new }
 
@@ -58,7 +52,7 @@ class MXCL::Term::Unit :isa(MXCL::Term) {
 # Words
 # ------------------------------------------------------------------------------
 
-class MXCL::Term::Word :isa(MXCL::Term::Atom) {
+class MXCL::Term::Word :isa(MXCL::Term) {
     field $ident :param :reader;
 
     sub CREATE ($class, $ident) { $class->new( ident => $ident ) }
@@ -83,7 +77,7 @@ class MXCL::Term::Key :isa(MXCL::Term::Word) {
 # Lists
 # ------------------------------------------------------------------------------
 
-class MXCL::Term::Nil :isa(MXCL::Term::Atom) {
+class MXCL::Term::Nil :isa(MXCL::Term) {
 
     sub CREATE ($class) { $class->new }
 
@@ -92,6 +86,8 @@ class MXCL::Term::Nil :isa(MXCL::Term::Atom) {
     method equals ($other) { $other isa __CLASS__ }
     method stringify { '()' }
     method boolify   { false }
+
+    method is_atom { true }
 
     method pprint { '()' }
 }
@@ -230,11 +226,7 @@ class MXCL::Term::Environment :isa(MXCL::Term) {
 # Functions (Callable)
 # ------------------------------------------------------------------------------
 
-class MXCL::Term::Callable    :isa(MXCL::Term) {}
-class MXCL::Term::Applicative :isa(MXCL::Term::Callable) {}
-class MXCL::Term::Operative   :isa(MXCL::Term::Callable) {}
-
-class MXCL::Term::Applicative::Native :isa(MXCL::Term::Applicative) {
+class MXCL::Term::Applicative::Native :isa(MXCL::Term) {
     field $name   :param :reader;
     field $params :param :reader;
     field $body   :param :reader;
@@ -263,7 +255,7 @@ class MXCL::Term::Applicative::Native :isa(MXCL::Term::Applicative) {
     }
 }
 
-class MXCL::Term::Operative::Native :isa(MXCL::Term::Operative) {
+class MXCL::Term::Operative::Native :isa(MXCL::Term) {
     field $name   :param :reader;
     field $params :param :reader;
     field $body   :param :reader;
@@ -292,7 +284,7 @@ class MXCL::Term::Operative::Native :isa(MXCL::Term::Operative) {
     }
 }
 
-class MXCL::Term::Lambda :isa(MXCL::Term::Applicative) {
+class MXCL::Term::Lambda :isa(MXCL::Term) {
     field $params :param :reader;
     field $body   :param :reader;
     field $env    :param :reader;
@@ -319,7 +311,7 @@ class MXCL::Term::Lambda :isa(MXCL::Term::Applicative) {
     }
 }
 
-class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
+class MXCL::Term::FExpr :isa(MXCL::Term) {
     field $params :param :reader;
     field $body   :param :reader;
     field $env    :param :reader;
@@ -350,7 +342,7 @@ class MXCL::Term::FExpr :isa(MXCL::Term::Operative) {
 # Literals
 # ------------------------------------------------------------------------------
 
-class MXCL::Term::Opaque :isa(MXCL::Term::Operative) {
+class MXCL::Term::Opaque :isa(MXCL::Term) {
     field $env :param :reader = undef;
 
     method resolve ($method) { $env->lookup( $method ) }

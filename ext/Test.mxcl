@@ -1,42 +1,44 @@
 
-(defvar *count* 0)
-(defvar *fails* 0)
+(defclass Tester ()
 
-(defun diag (msg) (say "# " msg))
+    (defvar *count* 0)
+    (defvar *fails* 0)
 
-(defun todo (msg)
-    (diag (~ "TODO:" msg)))
+    (defun diag ($t msg) (say "# " msg))
 
-(defun pass (msg)
-    (do
-        (set! *count* (+ *count* 1))
-        (say "ok " (stringify *count*) " - " msg)
-        ()))
+    (defun todo ($t msg)
+        ($t diag (~ "TODO:" msg)))
 
-(defun fail (msg)
-    (do
-        (set! *count* (+ *count* 1))
-        (set! *fails* (+ *fails* 1))
-        (say "not ok " *count* " - " msg)
-        ()))
+    (defun pass ($t msg)
+        (do
+            (set! *count* (+ *count* 1))
+            (say "ok " (stringify *count*) " - " msg)
+            ()))
 
-(defun ok (test msg)
-    (if (boolify test) (pass msg) (fail msg)))
+    (defun fail ($t msg)
+        (do
+            (set! *count* (+ *count* 1))
+            (set! *fails* (+ *fails* 1))
+            (say "not ok " *count* " - " msg)
+            ()))
 
-(defun is (got expected msg)
-    (let (result (eq? got expected))
-        (do (ok result msg)
-            (or result
-                (do
-                    (diag (~ "Failed test " msg))
-                    (diag (~ "       got: " got))
-                    (diag (~ "  expected: " expected)))))))
+    (defun ok ($t test msg)
+        (if (boolify test) ($t pass msg) ($t fail msg)))
 
-(defun done ()
-    (if (!= *fails* 0)
-        (do (say (~ "1.." *count*))
-            (diag (~ (~ "looks like you failed " *fails*)
-                     (~ " test(s) of " *count*))))
-        (say (~ "1.." *count*))))
+    (defun is ($t got expected msg)
+        (let (result (eq? got expected))
+            (do ($t ok result msg)
+                (or result
+                    (do
+                        ($t diag (~ "Failed test " msg))
+                        ($t diag (~ "       got: " got))
+                        ($t diag (~ "  expected: " expected)))))))
 
-()
+    (defun done ($t)
+        (if (!= *fails* 0)
+            (do (say (~ "1.." *count*))
+                ($t diag (~ (~ "looks like you failed " *fails*)
+                         (~ " test(s) of " *count*))))
+            (say (~ "1.." *count*))))
+
+)

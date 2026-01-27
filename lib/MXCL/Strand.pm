@@ -16,8 +16,8 @@ class MXCL::Strand {
     field $capabilities :reader :param = undef;
     field $compiler     :reader;
 
-    field %machines;
-    field @ready;
+    field %machines; # PID to machine mapping
+    field @ready;    # ready queue
 
     our $PID_SEQ = 0;
 
@@ -34,21 +34,7 @@ class MXCL::Strand {
         );
     }
 
-    method next_pid { MXCL::Term::Num->CREATE( ++$PID_SEQ ) }
-
-    method create_new_environment {
-        my $pid = $self->next_pid;
-        my $env = $capabilities->new_environment;
-        $env->define( MXCL::Term::Sym->CREATE('$PID'), $pid );
-        return ($env, $pid);
-    }
-
-    method fork_environment ($env) {
-        my $pid    = $self->next_pid;
-        my $forked = $env->derive( '$PID', $pid, '$PPID', $env->get('$PID') );
-        return ($forked, $pid);
-    }
-
+    # ...
 
     method compile_program ($source, $env) {
         $compiler->compile($source, $env)
@@ -67,6 +53,25 @@ class MXCL::Strand {
             env => $env
         )
     }
+
+    # ...
+
+    method next_pid { MXCL::Term::Num->CREATE( ++$PID_SEQ ) }
+
+    method create_new_environment {
+        my $pid = $self->next_pid;
+        my $env = $capabilities->new_environment;
+        $env->define( MXCL::Term::Sym->CREATE('$PID'), $pid );
+        return ($env, $pid);
+    }
+
+    method fork_environment ($env) {
+        my $pid    = $self->next_pid;
+        my $forked = $env->derive( '$PID', $pid, '$PPID', $env->get('$PID') );
+        return ($forked, $pid);
+    }
+
+    # ...
 
     method initialize_machine ($source) {
         my ($env, $pid) = $self->create_new_environment;
@@ -106,6 +111,13 @@ class MXCL::Strand {
         return $pid;
     }
 
+    # ...
+
+    # NOTE: the load->run pattern is kinda ick, it needs
+    # some work, especially since we no longer have just
+    # one machine. But this is all a WIP, so I will let it
+    # shake out as it goes.
+
     method load ($source) {
         $self->initialize_machine( $source );
         $self;
@@ -115,16 +127,18 @@ class MXCL::Strand {
         my @results;
         while (@ready) {
             my $m = shift @ready;
-            #warn "READY: ", $m;
             my $host = $m->run_until_host;
-            #warn "HOST: ", $host->pprint;
             if (defined( my $kont = $host->effect->handles( $host, $self ) )) {
                 push @ready => $m->prepare(@$kont);
             } else {
-                #warn "HALT: ", $host->pprint;
                 push @results => $host;
             }
         }
+
+        # FIXME: this is totally wrong
+        # but too many bits to change
+        # for now, so meh, I will get
+        # a round to it.
         return $results[0];
     }
 }

@@ -11,11 +11,14 @@ my $source = q|
 
 (defun fmt-pid ($pid) ("PID: " ~ $pid))
 
-(say (fmt-pid $PID))
-
-(fork (say (fmt-pid $PID)))
-
-(say (fmt-pid $PID))
+(say ("one ... " ~ (fmt-pid $PID)))
+(fork (do
+    (say (">> one ... " ~ (fmt-pid $PID)))
+    (say (">> two ... " ~ (fmt-pid $PID)))
+    (say (">> three ! " ~ (fmt-pid $PID)))
+))
+(say ("two ... " ~ (fmt-pid $PID)))
+(say ("three ! " ~ (fmt-pid $PID)))
 
 |;
 
@@ -34,3 +37,22 @@ if ($kont->effect isa 'MXCL::Effect::Halt') {
 
 __END__
 
+(defun fmt-pid ($pid) ("PID: " ~ $pid))
+
+(say ("one ... " ~ (fmt-pid $PID)))
+(fork (do
+    (say (">> one ... " ~ (fmt-pid $PID)))
+    (say (">> two ... " ~ (fmt-pid $PID)))
+    (say (">> three ! " ~ (fmt-pid $PID)))
+))
+(say ("two ... " ~ (fmt-pid $PID)))
+(say ("three ! " ~ (fmt-pid $PID)))
+
+# when run does this ...
+
+one ... PID: 1
+>> one ... PID: 2
+two ... PID: 1
+>> two ... PID: 2
+three ! PID: 1
+>> three ! PID: 2

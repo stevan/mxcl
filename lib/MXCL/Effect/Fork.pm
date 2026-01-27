@@ -21,6 +21,19 @@ class MXCL::Effect::Fork :isa(MXCL::Effect) {
                     )
                 ]
             }
+            when ('sleep') {
+                my $ms = $k->stack->pop();
+                $strand->schedule_alarm($k->env->lookup('$PID'), $ms->value);
+                return undef;
+            }
+            when ('time') {
+                return +[
+                    MXCL::Term::Kontinue::Return->new(
+                        env   => $k->env,
+                        value => MXCL::Term::Num->CREATE( $strand->now )
+                    )
+                ]
+            }
             default {
                 die "Unknown Operation: ".$k->config->{operation};
             }
@@ -36,6 +49,28 @@ class MXCL::Effect::Fork :isa(MXCL::Effect) {
                         effect => $self,
                         config => { operation => 'fork' }
                     )->with_stack( $expr ),
+                ]
+            }),
+            MXCL::Builtins::lift_operative('time', [qw[]], sub ($env) {
+                return [
+                    MXCL::Term::Kontinue::Host->new(
+                        env    => $env,
+                        effect => $self,
+                        config => { operation => 'time' }
+                    )
+                ]
+            }),
+            MXCL::Builtins::lift_operative('sleep', [qw[ ms ]], sub ($env, $ms) {
+                return [
+                    MXCL::Term::Kontinue::Host->new(
+                        env    => $env,
+                        effect => $self,
+                        config => { operation => 'sleep' }
+                    ),
+                    MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                        rest => MXCL::Term::List->CREATE( $ms ),
+                        env  => $env
+                    )
                 ]
             }),
         ]

@@ -10,14 +10,17 @@ use MXCL::Strand;
 my $source = q|
 
 
-(let (x 10)
-    (while (x > 0) (do
-        (say ("x: " ~ x))
-        (set! x (- x 1))
-    ))
-    (say ("x! " ~ x))
+(say ("NOW: " ~ (time)))
+
+(fork
+    (do
+        (sleep 1000)
+        (say ("CHILD AFTER 1000: " ~ (time)))
+    )
 )
 
+(sleep 300)
+(say ("AFTER 300: " ~ (time)))
 
 
 |;
@@ -32,10 +35,28 @@ if ($kont->effect isa 'MXCL::Effect::Halt') {
             ? $result->uncons
             : $result;
 } else {
-    say 'ERROR: ', $kont;
+    say 'ERROR: ', $kont->pprint;
 }
 
 __END__
+
+
+(say ("NOW: " ~ (time)))
+(fork
+    (do
+        (sleep 1000)
+        (say ("CHILD AFTER 1000: " ~ (time)))
+    )
+)
+(sleep 300)
+(say ("AFTER 300: " ~ (time)))
+
+;; output:
+;; NOW: 963814.324482
+;; AFTER 300: 963814.632044
+;; CHILD AFTER 1000: 963815.333371
+
+
 
 (defun fmt-pid ($pid) ("PID: " ~ $pid))
 

@@ -321,14 +321,19 @@ sub get_core_set {
         # ----------------------------------------------------------------------
         # Scope
         # ----------------------------------------------------------------------
-        lift_operative('let', [qw[ binding body ]], sub ($env, $binding, $body) {
+        lift_operative('let', [qw[ binding ...body ]], sub ($env, $binding, @body) {
             my ($name, $value) = $binding->uncons;
             my $local = $env->derive;
             return [
                 MXCL::Term::Kontinue::Context::Enter
                 ->new( env => $local )
                 ->wrap(
-                    MXCL::Term::Kontinue::Eval::Expr->new( expr => $body, env => $local ),
+                    (reverse map {
+                        MXCL::Term::Kontinue::Eval::Expr->new(
+                            env  => $local,
+                            expr => $_
+                        )
+                    } @body),
                     MXCL::Term::Kontinue::Define->new( name => $name, env => $local ),
                     MXCL::Term::Kontinue::Eval::Expr->new( expr => $value, env => $local ),
                 )
@@ -349,6 +354,28 @@ sub get_core_set {
                         condition => $cond,
                         if_true   => $if_true,
                         if_false  => $if_false,
+                    ),
+                    MXCL::Term::Kontinue::Eval::Expr->new(
+                        env  => $local,
+                        expr => $cond
+                    )
+                )
+            ]
+        }),
+        # ----------------------------------------------------------------------
+        # loops
+        # ----------------------------------------------------------------------
+        lift_operative('while', [qw[ cond body ]],
+        sub ($env, $cond, $body) {
+            my $local = $env->derive;
+            return [
+                MXCL::Term::Kontinue::Context::Enter
+                ->new( env => $local )
+                ->wrap(
+                    MXCL::Term::Kontinue::DoWhile->new(
+                        env       => $local,
+                        condition => $cond,
+                        body      => $body,
                     ),
                     MXCL::Term::Kontinue::Eval::Expr->new(
                         env  => $local,

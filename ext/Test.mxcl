@@ -27,12 +27,12 @@
 
     (defun is ($t got expected msg)
         (let (result (eq? got expected))
-            (do ($t ok result msg)
-                (or result
-                    (do
-                        ($t diag (~ "Failed test " msg))
-                        ($t diag (~ "       got: " got))
-                        ($t diag (~ "  expected: " expected)))))))
+            ($t ok result msg)
+            (or result
+                (do
+                    ($t diag (~ "Failed test " msg))
+                    ($t diag (~ "       got: " got))
+                    ($t diag (~ "  expected: " expected))))))
 
     (defun done ($t)
         (if (!= *fails* 0)

@@ -158,6 +158,24 @@ class MXCL::Machine {
                                     : $self->evaluate_term( $k->if_false, $k->env );
                         }
                     }
+                    when ('DoWhile') {
+                        my $condition = $k->stack->pop();
+                        if ($condition->boolify) {
+                            push @$queue => (
+                                # 3. re-use this continuation for the next loop
+                                $k,
+                                # 2. check the condition again ...
+                                MXCL::Term::Kontinue::Eval::Expr->new(
+                                    env  => $k->env,
+                                    expr => $k->condition
+                                ),
+                                # 1. evaluate the body ...
+                                $self->evaluate_term( $k->body, $k->env ),
+                            );
+                        } else {
+                            # 4. or exit the loop
+                        }
+                    }
                     when ('Throw') {
                         my @leave_konts;
                         while (@$queue) {

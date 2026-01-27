@@ -87,6 +87,26 @@ class MXCL::Term::Kontinue::IfElse :isa(MXCL::Term::Kontinue) {
     }
 }
 
+class MXCL::Term::Kontinue::DoWhile :isa(MXCL::Term::Kontinue) {
+    field $condition :param :reader;
+    field $body      :param :reader;
+
+    method stringify {
+        $self->format(
+            sprintf ':condition %s :body %s'
+                => $condition->stringify,
+                   $body->stringify,
+        )
+    }
+    method pprint {
+        $self->pformat(
+            sprintf ':condition %s :body %s'
+                => $condition->pprint,
+                   $body->pprint,
+        )
+    }
+}
+
 class MXCL::Term::Kontinue::Define :isa(MXCL::Term::Kontinue) {
     field $name :param :reader;
 

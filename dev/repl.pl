@@ -9,16 +9,16 @@ use MXCL::Strand;
 
 my $source = q|
 
-(defun fmt-pid ($pid) ("PID: " ~ $pid))
 
-(say ("one ... " ~ (fmt-pid $PID)))
-(fork (do
-    (say (">> one ... " ~ (fmt-pid $PID)))
-    (say (">> two ... " ~ (fmt-pid $PID)))
-    (say (">> three ! " ~ (fmt-pid $PID)))
-))
-(say ("two ... " ~ (fmt-pid $PID)))
-(say ("three ! " ~ (fmt-pid $PID)))
+(let (x 10)
+    (while (x > 0) (do
+        (say ("x: " ~ x))
+        (set! x (- x 1))
+    ))
+    (say ("x! " ~ x))
+)
+
+
 
 |;
 

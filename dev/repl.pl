@@ -9,7 +9,13 @@ use MXCL::Strand;
 
 my $source = q|
 
+(defun fmt-pid ($pid) ("PID: " ~ $pid))
 
+(say (fmt-pid $PID))
+
+(fork (say (fmt-pid $PID)))
+
+(say (fmt-pid $PID))
 
 |;
 

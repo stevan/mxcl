@@ -58,18 +58,24 @@ class MXCL::Machine {
         }
     }
 
-    method resume (@kont) {
+    method prepare (@kont) {
         push @$queue => @kont;
-        return $self->run_until_host;
+        $self;
+    }
+
+    method resume (@kont) {
+        $self->prepare(@kont)->run_until_host;
     }
 
     method run_until_host {
         while (@$queue) {
             $ticks++;
             my $k = pop @$queue;
-            #warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
-            #warn "KONT :=> ",$k->pprint,"\n";
-            #warn join "\n  " => "QUEUE:", (reverse map $_->pprint, @$queue), "\n";
+            if ($ENV{DEBUG}) {
+                warn sprintf "-- %03d TICKS[%03d] %s\n" => $k->env->get('$PID')->value, $ticks, ('-' x 85);
+                warn "KONT :=> ",$k->pprint,"\n";
+                warn join "\n  " => "QUEUE:", (reverse map $_->pprint, @$queue), "\n";
+            }
             try {
                 given ($k->type) {
                     when ('Host') {

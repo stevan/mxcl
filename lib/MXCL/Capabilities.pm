@@ -18,5 +18,7 @@ class MXCL::Capabilities {
         )
     }
 
-    method new_environment { $base_env->derive }
+    method new_environment {
+        $base_env->derive
+    }
 }

@@ -26,8 +26,12 @@ class MXCL::Strand {
     field $time;     # last checked time
     field @timers;   # pending timers
 
-    our $PID_SEQ   = 0;
+    # Watchers
+    field %watchers;
+
+    our $PID_SEQ   = -1;
     our $TIMER_SEQ = 0;
+    our $INIT_PID  = MXCL::Term::PID->CREATE($PID_SEQ++, undef);
 
     ADJUST {
         $compiler = MXCL::Compiler->new;
@@ -49,15 +53,20 @@ class MXCL::Strand {
     # to it to make it robust. But this works for now.
     # --------------------------------------------------------------------------
 
-    method next_pid { MXCL::Term::Num->CREATE( ++$PID_SEQ ) }
+    method next_pid ($parent = undef) {
+        MXCL::Term::PID->CREATE(
+            ++$PID_SEQ,
+            $parent // $INIT_PID
+        )
+    }
 
     # ... initializing seed machine
 
     method initialize_environment {
         my $pid = $self->next_pid;
         my $env = $capabilities->new_environment;
-        $env->define( MXCL::Term::Sym->CREATE('$PID'), $pid );
-        $env->define( MXCL::Term::Sym->CREATE('$PPID'), MXCL::Term::Num->CREATE(-1) );
+        $env->define('$PID', $pid);
+        $env->define('$PPID', $INIT_PID);
         return ($env, $pid);
     }
 
@@ -79,21 +88,24 @@ class MXCL::Strand {
         );
 
         $machines{ $pid->value } = $machine;
-        push @ready => $machine;
+        push @ready => [ $pid, $machine ];
 
-        return $pid;
+        return ($env, $pid);
     }
 
     # ... forking machines
 
-    method fork_environment ($env) {
-        my $pid    = $self->next_pid;
-        my $forked = $env->derive( '$PID', $pid, '$PPID', $env->lookup('$PID') );
+    method fork_environment ($ppid, $env) {
+        my $pid    = $self->next_pid( $ppid );
+        my $forked = $env->derive(
+            '$PID'  => $pid,
+            '$PPID' => $ppid,
+        );
         return ($forked, $pid);
     }
 
-    method fork_machine ($expr, $env) {
-        my ($forked, $pid) = $self->fork_environment( $env );
+    method fork_machine ($pid, $expr, $env) {
+        my ($forked, $new_pid) = $self->fork_environment( $pid, $env );
 
         my $machine = MXCL::Machine->new(
             env      => $forked,
@@ -120,10 +132,10 @@ class MXCL::Strand {
             ),
         );
 
-        $machines{ $pid->value } = $machine;
-        push @ready => $machine;
+        $machines{ $new_pid->value } = $machine;
+        push @ready => [ $new_pid, $machine ];
 
-        return $pid;
+        return ($forked, $new_pid);
     }
 
     # --------------------------------------------------------------------------
@@ -142,16 +154,23 @@ class MXCL::Strand {
         my @results;
         $ENV{STRAND_DEBUG} && say "BEGIN";
         while (@ready || @timers) {
-            my $m = shift @ready;
-            my $pid = $m->env->get('$PID')->value;
+            my ($pid, $m) = @{ shift @ready };
             $ENV{STRAND_DEBUG} && say "RUN ${pid} START";
             my $host = $m->run_until_host;
             $ENV{STRAND_DEBUG} && say "RUN ${pid} GOT ", $host->pprint;
-            if (defined( my $kont = $host->effect->handles( $host, $self ) )) {
+            if (defined( my $kont = $host->effect->handles( $host, $self, $pid ) )) {
                 $ENV{STRAND_DEBUG} && say "RUN ${pid} NEXT ", join "\n" => map $_->pprint, @$kont;
-                push @ready => $m->prepare(@$kont);
+                push @ready => [ $pid, $m->prepare(@$kont) ];
             } else {
                 $ENV{STRAND_DEBUG} && say "RUN ${pid} HALT!";
+                if ($host->effect isa MXCL::Effect::Halt) {
+                    if (exists $watchers{ $pid->value }) {
+                        my $watchers = delete $watchers{ $pid->value };
+                        foreach my $watcher (@$watchers) {
+                            push @ready => [ $watcher, $machines{ $watcher->value } ];
+                        }
+                    }
+                }
                 push @results => $host;
             }
 
@@ -175,7 +194,7 @@ class MXCL::Strand {
                 #say join ', ' => @$timer;
                 my $pid = $timer->[ 2 ];
                 my $_m  = $machines{ $pid->value };
-                push @ready => $_m;
+                push @ready => [ $pid, $_m ];
             }
 
             $ENV{STRAND_DEBUG} && say ">> GOT WORK TO BE DONE: ", scalar @ready;
@@ -186,6 +205,10 @@ class MXCL::Strand {
         # for now, so meh, I will get
         # a round to it.
         return $results[-1];
+    }
+
+    method schedule_watcher ( $to_watch, $to_notify ) {
+        push @{ $watchers{ $to_watch->value } //= [] } => $to_notify;
     }
 
     # --------------------------------------------------------------------------

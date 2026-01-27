@@ -9,21 +9,26 @@ use MXCL::Effect;
 
 class MXCL::Effect::Fork :isa(MXCL::Effect) {
 
-    method handles ($k, $strand) {
+    method handles ($k, $strand, $pid) {
         given ($k->config->{operation}) {
             when ('fork') {
                 my $expr = $k->stack->pop();
-                my $pid  = $strand->fork_machine( $expr, $k->env );
+                my ($forked, $new_pid)  = $strand->fork_machine( $pid, $expr, $k->env );
                 return +[
                     MXCL::Term::Kontinue::Return->new(
-                        env   => $k->env,
-                        value => $pid
+                        env   => $forked,
+                        value => $new_pid
                     )
                 ]
             }
+            when ('wait') {
+                my $wait_on = $k->stack->pop();
+                $strand->schedule_watcher( $wait_on, $pid );
+                return undef;
+            }
             when ('sleep') {
                 my $ms = $k->stack->pop();
-                $strand->schedule_alarm($k->env->lookup('$PID'), $ms->value);
+                $strand->schedule_alarm( $k->env->lookup('$PID'), $ms->value );
                 return undef;
             }
             when ('time') {
@@ -42,6 +47,19 @@ class MXCL::Effect::Fork :isa(MXCL::Effect) {
 
     method provides {
         return +[
+            MXCL::Builtins::lift_operative('wait', [qw[ pid ]], sub ($env, $pid) {
+                return [
+                    MXCL::Term::Kontinue::Host->new(
+                        env    => $env,
+                        effect => $self,
+                        config => { operation => 'wait' }
+                    ),
+                    MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                        rest => MXCL::Term::List->CREATE( $pid ),
+                        env  => $env
+                    )
+                ]
+            }),
             MXCL::Builtins::lift_operative('fork', [qw[ expr ]], sub ($env, $expr) {
                 return [
                     MXCL::Term::Kontinue::Host->new(

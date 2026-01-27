@@ -9,7 +9,7 @@ use MXCL::Effect;
 
 class MXCL::Effect::Require :isa(MXCL::Effect) {
 
-    method handles ($k, $strand) {
+    method handles ($k, $strand, $pid) {
         given ($k->config->{operation}) {
             when ('require') {
                 my $file   = $k->stack->pop();

@@ -72,7 +72,7 @@ class MXCL::Machine {
             $ticks++;
             my $k = pop @$queue;
             if ($ENV{DEBUG}) {
-                warn sprintf "-- %03d TICKS[%03d] %s\n" => $k->env->get('$PID')->value, $ticks, ('-' x 85);
+                warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
                 warn "KONT :=> ",$k->pprint,"\n";
                 warn join "\n  " => "QUEUE:", (reverse map $_->pprint, @$queue), "\n";
             }

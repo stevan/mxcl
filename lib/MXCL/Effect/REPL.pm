@@ -18,7 +18,7 @@ class MXCL::Effect::REPL :isa(MXCL::Effect) {
         $error  = \*STDERR,
     }
 
-    method handles ($k, $strand) {
+    method handles ($k, $strand, $pid) {
         given ($k->config->{operation}) {
             when ('repl') {
                 # print the old result if we have it

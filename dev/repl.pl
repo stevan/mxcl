@@ -9,19 +9,14 @@ use MXCL::Strand;
 
 my $source = q|
 
-
-(say ("NOW: " ~ (time)))
-
-(fork
-    (do
-        (sleep 1000)
-        (say ("CHILD AFTER 1000: " ~ (time)))
-    )
-)
-
-(sleep 300)
-(say ("AFTER 300: " ~ (time)))
-
+    (say ("Waiting in " ~ $PID))
+    (wait (fork
+        (do
+            (say ("sleeping in " ~ $PID))
+            (sleep 3000)
+            (say ("AWAKE! in" ~ $PID))
+    )))
+    (say ("done waiting" ~ $PID))
 
 |;
 
@@ -39,6 +34,56 @@ if ($kont->effect isa 'MXCL::Effect::Halt') {
 }
 
 __END__
+
+(say ("Waiting in " ~ $PID))
+(wait (fork
+    (do
+        (say ("sleeping in " ~ $PID))
+        (sleep 3000)
+        (say ("AWAKE! in" ~ $PID))
+)))
+(say ("done waiting" ~ $PID))
+
+;; Waiting in ^:001
+;; sleeping in ^:001:002
+;; AWAKE! in^:001:002
+;; done waiting^:001
+
+
+(let ($pid (fork
+        (do
+            (say ("sleeping in " ~ $PID))
+            (sleep 3000)
+            (say ("AWAKE! in" ~ $PID))
+    )))
+
+    (say ("Waiting on " ~ $pid))
+    (wait $pid)
+    (say ("PID finished" ~ $pid))
+)
+
+;; sleeping in ^:001:002
+;; Waiting on ^:001:002
+;; AWAKE! in^:001:002
+;; PID finished^:001:002
+
+
+(defun fork-tree ($n)
+    (if ($n > 0)
+        (fork
+            (do
+                (say $PID)
+                (fork-tree ($n - 1))
+            ))
+        ()))
+
+(fork-tree 5)
+
+;; <PID ^:001:002>
+;; <PID ^:001:002:003>
+;; <PID ^:001:002:003:004>
+;; <PID ^:001:002:003:004:005>
+;; <PID ^:001:002:003:004:005:006>
 
 
 (say ("NOW: " ~ (time)))

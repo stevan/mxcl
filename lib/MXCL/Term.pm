@@ -207,17 +207,17 @@ class MXCL::Term::Environment :isa(MXCL::Term) {
         return '%BIFS' if $self->is_root;
         my $output = sprintf '%%E(%s)' => join ' ' => map {
             sprintf ':%s %s' => $_, $entries->{$_}->type
-        } keys %$entries;
+        } grep !/defer/, keys %$entries;
         $output .= $parent->pprint if defined $parent;
         return $output;
     }
 
     method pprint {
         return '%BIFS' if $self->is_root;
-        my $output = sprintf '%%E(%s)' => join ' ' => map {
-            sprintf ':%s %s' => $_, $entries->{$_}->type
-        } keys %$entries;
-        $output .= ' parent: '.$parent->pprint if defined $parent;
+        my $output = sprintf '%%E(%s)' => join ", " => map {
+            sprintf ':%s %s' => $_, ($entries->{$_} isa MXCL::Term::Lambda ? $entries->{$_}->type : $entries->{$_}->pprint)
+        } grep !/defer/, keys %$entries;
+        $output .= " ~ ".$parent->pprint if defined $parent;
         return $output;
     }
 }
@@ -388,17 +388,17 @@ class MXCL::Term::Num :isa(MXCL::Term::Opaque) {
 
     sub CREATE ($class, $value) { $class->new( value => $value, env => get_local_env() ) }
 
-    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
+    method equals ($other) { $other isa __CLASS__ && $other->value == $value }
 
-    method stringify { ''.$self->value }
-    method numify    { $self->value }
-    method boolify   { $self->value != 0 }
+    method stringify { ''.$value }
+    method numify    { $value }
+    method boolify   { $value != 0 }
 
     method is_atom     { true  }
     method is_literal  { true  }
     method is_callable { false }
 
-    method pprint    { ''.$self->value }
+    method pprint    { ''.$value }
 }
 
 class MXCL::Term::Str :isa(MXCL::Term::Opaque) {
@@ -415,17 +415,17 @@ class MXCL::Term::Str :isa(MXCL::Term::Opaque) {
 
     sub CREATE ($class, $value) { $class->new( value => $value, env => get_local_env() ) }
 
-    method equals ($other) { $other isa __CLASS__ && $other->value eq $self->value }
+    method equals ($other) { $other isa __CLASS__ && $other->value eq $value }
 
-    method stringify { $self->value }
-    method numify    { 0+$self->value }
-    method boolify   { $self->value ne '' }
+    method stringify { $value }
+    method numify    { 0+$value }
+    method boolify   { $value ne '' }
 
     method is_atom     { true  }
     method is_literal  { true  }
     method is_callable { false }
 
-    method pprint { $self->value }
+    method pprint { $value }
 }
 
 class MXCL::Term::Bool :isa(MXCL::Term::Opaque) {
@@ -442,17 +442,60 @@ class MXCL::Term::Bool :isa(MXCL::Term::Opaque) {
 
     sub CREATE ($class, $value) { $class->new( value => $value, env => get_local_env() ) }
 
-    method equals ($other) { $other isa __CLASS__ && $other->value == $self->value }
+    method equals ($other) { $other isa __CLASS__ && $other->value == $value }
 
-    method stringify { $self->value ? 'true' : 'false' }
-    method numify    { $self->value ? 1 : 0 }
-    method boolify   { $self->value }
+    method stringify { $value ? 'true' : 'false' }
+    method numify    { $value ? 1 : 0 }
+    method boolify   { $value }
 
     method is_atom     { true  }
     method is_literal  { true  }
     method is_callable { false }
 
-    method pprint { $self->value ? 'true' : 'false' }
+    method pprint { $value ? 'true' : 'false' }
+}
+
+class MXCL::Term::PID :isa(MXCL::Term::Opaque) {
+    field $value  :param :reader;
+    field $parent :param :reader;
+
+    our $ENV;
+    sub get_local_env {
+        $ENV //= MXCL::Term::Environment->new(
+            entries => +{}
+        )
+    }
+
+    sub CREATE ($class, $value, $parent) {
+        $class->new(
+            env    => get_local_env(),
+            value  => $value,
+            parent => $parent,
+        )
+    }
+
+    method is_root { not defined $parent }
+
+    method equals ($other) {
+        $self->is_root && $other->is_root
+            || $other isa __CLASS__
+                && $other->value == $self->value
+                    && $parent->equals($other->parent);
+    }
+
+    method stringify {
+        return '^' if $self->is_root;
+        join ':' => $parent ? $parent->stringify : (), sprintf '%03d' => $value
+    }
+
+    method numify    { $value }
+    method boolify   { true }
+
+    method is_atom     { true  }
+    method is_literal  { true  }
+    method is_callable { false }
+
+    method pprint { sprintf '<PID %s>' => $self->stringify }
 }
 
 # ------------------------------------------------------------------------------

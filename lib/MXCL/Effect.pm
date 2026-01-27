@@ -13,18 +13,23 @@ class MXCL::Effect {
     # provides ()
     #   - returns an array of Callable objects to be added to the env
 
-    method handles  ($, $) { ... }
+    method handles  ($, $, $) { ... }
     method provides { ... }
 }
 
 class MXCL::Effect::Halt :isa(MXCL::Effect) {
-    method handles  ($, $) { undef }
+    method handles  ($, $, $) { undef }
     # XXX - should this provide an exit() function?
     method provides { +[] }
 }
 
 class MXCL::Effect::Error :isa(MXCL::Effect) {
-    method handles  ($k, $strand) { die "ERROR!!!!", (join ', ' => map { $_->pprint } $k->stack->splice(0)),"\n" }
+    method handles  ($k, $strand, $pid) {
+        die sprintf "%s ERROR! %s\n",
+            $pid->pprint,
+            (join ', ' => map { $_->pprint } $k->stack->splice(0))
+    }
+
     # XXX - should this provide anything?
     method provides { +[] }
 }

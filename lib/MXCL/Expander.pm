@@ -25,7 +25,12 @@ class MXCL::Expander {
         my $src = $token->source;
         return MXCL::Term::Bool->CREATE( true  ) if $src eq 'true';
         return MXCL::Term::Bool->CREATE( false ) if $src eq 'false';
-        return MXCL::Term::Str->CREATE( substr($src, 1, length($src) - 2) ) if $src =~ /^\".*\"$/;
+        if ($src =~ /^\".*\"$/) {
+            my $str = substr($src, 1, length($src) - 2);
+            $str = "\n" if $str eq "\\n";
+            $str = "\t" if $str eq "\\t";
+            return MXCL::Term::Str->CREATE( $str );
+        }
         return MXCL::Term::Num->CREATE( 0+$src ) if looks_like_number($src);
         return MXCL::Term::Key->CREATE( substr($src, 1) ) if $src =~ /^\:/;
         return MXCL::Term::Sym->CREATE( $src );

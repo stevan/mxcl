@@ -8,6 +8,8 @@ use MXCL::Builtins;
 use MXCL::Effect;
 
 class MXCL::Effect::TTY :isa(MXCL::Effect) {
+    use Term::ReadKey qw[ ReadMode ReadKey ];
+
     field $input  :param :reader = undef;
     field $output :param :reader = undef;
     field $error  :param :reader = undef;
@@ -54,6 +56,18 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
                         value => MXCL::Term::Str->CREATE( $line )
+                    )
+                ]
+            }
+            when ('getc') {
+                ReadMode('cbreak', $input);
+                my $char;
+                1 until defined($char = ReadKey(-1, $input));
+                ReadMode('restore', $input);
+                return +[
+                    MXCL::Term::Kontinue::Return->new(
+                        env   => $k->env,
+                        value => MXCL::Term::Str->CREATE( $char )
                     )
                 ]
             }
@@ -110,6 +124,15 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
                         env    => $env,
                         effect => $self,
                         config => { operation => 'readline' }
+                    )
+                ]
+            }),
+            MXCL::Builtins::lift_operative('getc', [], sub ($env, @) {
+                return [
+                    MXCL::Term::Kontinue::Host->new(
+                        env    => $env,
+                        effect => $self,
+                        config => { operation => 'getc' }
                     )
                 ]
             })

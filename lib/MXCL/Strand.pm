@@ -151,54 +151,84 @@ class MXCL::Strand {
     }
 
     method run {
+        # Install cleanup signal handlers
+        local $SIG{INT} = sub {
+            $ENV{STRAND_DEBUG} && say "SIGINT received, cleaning up...";
+            $self->cleanup_effects();
+            exit(130);  # Standard exit code for SIGINT
+        };
+        local $SIG{QUIT} = sub {
+            $ENV{STRAND_DEBUG} && say "SIGQUIT received, cleaning up...";
+            $self->cleanup_effects();
+            exit(131);  # Standard exit code for SIGQUIT
+        };
+        local $SIG{TERM} = sub {
+            $ENV{STRAND_DEBUG} && say "SIGTERM received, cleaning up...";
+            $self->cleanup_effects();
+            exit(143);  # Standard exit code for SIGTERM
+        };
+
         my @results;
-        $ENV{STRAND_DEBUG} && say "BEGIN";
-        while (@ready || @timers) {
-            my ($pid, $m) = @{ shift @ready };
-            $ENV{STRAND_DEBUG} && say "RUN ${pid} START";
-            my $host = $m->run_until_host;
-            $ENV{STRAND_DEBUG} && say "RUN ${pid} GOT ", $host->pprint;
-            if (defined( my $kont = $host->effect->handles( $host, $self, $pid ) )) {
-                $ENV{STRAND_DEBUG} && say "RUN ${pid} NEXT ", join "\n" => map $_->pprint, @$kont;
-                push @ready => [ $pid, $m->prepare(@$kont) ];
-            } else {
-                $ENV{STRAND_DEBUG} && say "RUN ${pid} HALT!";
-                if ($host->effect isa MXCL::Effect::Halt) {
-                    if (exists $watchers{ $pid->value }) {
-                        my $watchers = delete $watchers{ $pid->value };
-                        foreach my $watcher (@$watchers) {
-                            push @ready => [ $watcher, $machines{ $watcher->value } ];
+        my $error;
+
+        eval {
+            $ENV{STRAND_DEBUG} && say "BEGIN";
+            while (@ready || @timers) {
+                my ($pid, $m) = @{ shift @ready };
+                $ENV{STRAND_DEBUG} && say "RUN ${pid} START";
+                my $host = $m->run_until_host;
+                $ENV{STRAND_DEBUG} && say "RUN ${pid} GOT ", $host->pprint;
+                if (defined( my $kont = $host->effect->handles( $host, $self, $pid ) )) {
+                    $ENV{STRAND_DEBUG} && say "RUN ${pid} NEXT ", join "\n" => map $_->pprint, @$kont;
+                    push @ready => [ $pid, $m->prepare(@$kont) ];
+                } else {
+                    $ENV{STRAND_DEBUG} && say "RUN ${pid} HALT!";
+                    if ($host->effect isa MXCL::Effect::Halt) {
+                        if (exists $watchers{ $pid->value }) {
+                            my $watchers = delete $watchers{ $pid->value };
+                            foreach my $watcher (@$watchers) {
+                                push @ready => [ $watcher, $machines{ $watcher->value } ];
+                            }
                         }
                     }
+                    push @results => $host;
                 }
-                push @results => $host;
-            }
 
-            # don't wait if we have work to do
-            unless (@ready) {
-                $ENV{STRAND_DEBUG} && say "...NO PENDING WORK, CHECK WAIT!";
-                my $wait_duration = $self->should_wait;
-                if ($wait_duration > 0) {
-                    $ENV{STRAND_DEBUG} && say "[TIMER] Waiting ${wait_duration}s for next timer";
-                    $self->wait($wait_duration);
-                    $ENV{STRAND_DEBUG} && say "[TIMER] done waiting"
-                } else {
-                    $ENV{STRAND_DEBUG} && say "[TIMER] to short to wait ... "
+                # don't wait if we have work to do
+                unless (@ready) {
+                    $ENV{STRAND_DEBUG} && say "...NO PENDING WORK, CHECK WAIT!";
+                    my $wait_duration = $self->should_wait;
+                    if ($wait_duration > 0) {
+                        $ENV{STRAND_DEBUG} && say "[TIMER] Waiting ${wait_duration}s for next timer";
+                        $self->wait($wait_duration);
+                        $ENV{STRAND_DEBUG} && say "[TIMER] done waiting"
+                    } else {
+                        $ENV{STRAND_DEBUG} && say "[TIMER] to short to wait ... "
+                    }
                 }
-            }
 
-            # process timers
-            my @to_run = $self->get_pending_timers;
-            $ENV{STRAND_DEBUG} && say ">> GOT TIMERS TO RUN: ", scalar @to_run;
-            foreach my $timer (@to_run) {
-                #say join ', ' => @$timer;
-                my $pid = $timer->[ 2 ];
-                my $_m  = $machines{ $pid->value };
-                push @ready => [ $pid, $_m ];
-            }
+                # process timers
+                my @to_run = $self->get_pending_timers;
+                $ENV{STRAND_DEBUG} && say ">> GOT TIMERS TO RUN: ", scalar @to_run;
+                foreach my $timer (@to_run) {
+                    #say join ', ' => @$timer;
+                    my $pid = $timer->[ 2 ];
+                    my $_m  = $machines{ $pid->value };
+                    push @ready => [ $pid, $_m ];
+                }
 
-            $ENV{STRAND_DEBUG} && say ">> GOT WORK TO BE DONE: ", scalar @ready;
-        }
+                $ENV{STRAND_DEBUG} && say ">> GOT WORK TO BE DONE: ", scalar @ready;
+            }
+        };
+
+        $error = $@;
+
+        # Always cleanup effects, even on error
+        $ENV{STRAND_DEBUG} && say "Cleaning up effects...";
+        $self->cleanup_effects();
+
+        # Re-throw error after cleanup
+        die $error if $error;
 
         # FIXME: this is totally wrong
         # but too many bits to change
@@ -209,6 +239,23 @@ class MXCL::Strand {
 
     method schedule_watcher ( $to_watch, $to_notify ) {
         push @{ $watchers{ $to_watch->value } //= [] } => $to_notify;
+    }
+
+    # --------------------------------------------------------------------------
+    # Effect Management
+    # --------------------------------------------------------------------------
+
+    method effects() {
+        return @{$capabilities->effects};
+    }
+
+    method cleanup_effects() {
+        foreach my $effect ($self->effects) {
+            eval { $effect->cleanup() };
+            if ($@) {
+                warn "Effect cleanup failed: $@";
+            }
+        }
     }
 
     # --------------------------------------------------------------------------

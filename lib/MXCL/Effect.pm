@@ -12,9 +12,14 @@ class MXCL::Effect {
     #
     # provides ()
     #   - returns an array of Callable objects to be added to the env
+    #
+    # cleanup ()
+    #   - optional cleanup hook called by Strand on exit/error/signal
+    #   - default is no-op, subclasses can override to release resources
 
     method handles  ($, $, $) { ... }
     method provides { ... }
+    method cleanup  () { } # Default: no-op
 }
 
 class MXCL::Effect::Halt :isa(MXCL::Effect) {

@@ -21,30 +21,29 @@ class MXCL::Term::Parser::Token :isa(MXCL::Term) {
     method source { $self->value }
 
     method stringify {
-        sprintf '<token %s>' => $self->value
+        $self->pprint;
     }
+
     method pprint {
-        sprintf '<token %s>' => $self->value
+        sprintf '%s' => $self->value
     }
 }
 
 class MXCL::Term::Parser::Compound :isa(MXCL::Term::Array) {
-    field $open  :param = undef;
-    field $close :param = undef;
+    field $open  :param = MXCL::Term::Parser::Token->new(value => '(');
+    field $close :param = MXCL::Term::Parser::Token->new(value => ')');
 
     method open  :lvalue { $open  }
     method close :lvalue { $close }
 
     method stringify {
-        sprintf '<compound %s:[%s]:%s>'
-            => $open->stringify,
-               (join ' ' => map $_->stringify, $self->uncons),
-               $close->stringify;
+        $self->pprint
     }
+
     method pprint {
-        sprintf '<compound %s:[%s]:%s>'
+        sprintf '%s %s %s'
             => $open->pprint,
-               (join ' ' => map $_->pprint, $self->uncons),
+               (join ' ' => map $_->pprint, $self->all_elements),
                $close->pprint;
     }
 }

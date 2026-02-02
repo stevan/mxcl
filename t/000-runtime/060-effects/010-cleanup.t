@@ -43,7 +43,7 @@ package TestEffect {
         )
     );
 
-    my @effects = $strand->effects;
+    my @effects = $strand->capabilities->effects->@*;
     is(scalar @effects, 2, 'effects() returns all effects');
     is($effects[0]->name, 'effect1', 'first effect is correct');
     is($effects[1]->name, 'effect2', 'second effect is correct');
@@ -63,7 +63,7 @@ package TestEffect {
     ok(!$effect1->cleanup_called, 'effect1 cleanup not called initially');
     ok(!$effect2->cleanup_called, 'effect2 cleanup not called initially');
 
-    $strand->cleanup_effects();
+    $strand->capabilities->cleanup;
 
     ok($effect1->cleanup_called, 'effect1 cleanup was called');
     ok($effect2->cleanup_called, 'effect2 cleanup was called');

@@ -2,21 +2,13 @@
 use v5.42;
 use experimental qw[ class ];
 
-use MXCL::Compiler;
 use MXCL::Machine;
 use MXCL::Capabilities;
-
-use MXCL::Effect;
-use MXCL::Effect::TTY;
-use MXCL::Effect::REPL;
-use MXCL::Effect::Require;
-use MXCL::Effect::Fork;
 
 use Time::HiRes ();
 
 class MXCL::Strand {
     field $capabilities :reader :param = undef;
-    field $compiler     :reader;
 
     # Machines ...
     field %machines; # PID to machine mapping
@@ -29,21 +21,12 @@ class MXCL::Strand {
     # Watchers
     field %watchers;
 
-    our $PID_SEQ   = -1;
     our $TIMER_SEQ = 0;
+    our $PID_SEQ   = -1;
     our $INIT_PID  = MXCL::Term::PID->CREATE($PID_SEQ++, undef);
 
     ADJUST {
-        $compiler = MXCL::Compiler->new;
-
-        $capabilities //= MXCL::Capabilities->new(
-            effects => [
-                MXCL::Effect::TTY->new,
-                MXCL::Effect::REPL->new,
-                MXCL::Effect::Require->new,
-                MXCL::Effect::Fork->new,
-            ]
-        );
+        $capabilities //= MXCL::Capabilities->new;
     }
 
     # ...
@@ -73,7 +56,7 @@ class MXCL::Strand {
     method initialize_machine ($source) {
         my ($env, $pid) = $self->initialize_environment;
 
-        my $program = $compiler->compile($source, $env);
+        my $program = $capabilities->compile($source, $env);
         my $machine = MXCL::Machine->new(
             program  => $program,
             env      => $env,
@@ -154,17 +137,17 @@ class MXCL::Strand {
         # Install cleanup signal handlers
         local $SIG{INT} = sub {
             $ENV{STRAND_DEBUG} && say "SIGINT received, cleaning up...";
-            $self->cleanup_effects();
+            $capabilities->cleanup;
             exit(130);  # Standard exit code for SIGINT
         };
         local $SIG{QUIT} = sub {
             $ENV{STRAND_DEBUG} && say "SIGQUIT received, cleaning up...";
-            $self->cleanup_effects();
+            $capabilities->cleanup;
             exit(131);  # Standard exit code for SIGQUIT
         };
         local $SIG{TERM} = sub {
             $ENV{STRAND_DEBUG} && say "SIGTERM received, cleaning up...";
-            $self->cleanup_effects();
+            $capabilities->cleanup;
             exit(143);  # Standard exit code for SIGTERM
         };
 
@@ -225,7 +208,7 @@ class MXCL::Strand {
 
         # Always cleanup effects, even on error
         $ENV{STRAND_DEBUG} && say "Cleaning up effects...";
-        $self->cleanup_effects();
+        $capabilities->cleanup;
 
         # Re-throw error after cleanup
         die $error if $error;
@@ -239,23 +222,6 @@ class MXCL::Strand {
 
     method schedule_watcher ( $to_watch, $to_notify ) {
         push @{ $watchers{ $to_watch->value } //= [] } => $to_notify;
-    }
-
-    # --------------------------------------------------------------------------
-    # Effect Management
-    # --------------------------------------------------------------------------
-
-    method effects() {
-        return @{$capabilities->effects};
-    }
-
-    method cleanup_effects() {
-        foreach my $effect ($self->effects) {
-            eval { $effect->cleanup() };
-            if ($@) {
-                warn "Effect cleanup failed: $@";
-            }
-        }
     }
 
     # --------------------------------------------------------------------------

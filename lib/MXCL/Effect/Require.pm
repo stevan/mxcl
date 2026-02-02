@@ -18,7 +18,7 @@ class MXCL::Effect::Require :isa(MXCL::Effect) {
                 $fh->open($path, '<') or die "Cannot open file($path) because $!";
                 my $source = join '' => $fh->getlines;
                 # compile it ...
-                return $strand->compiler->compile($source, $k->env);
+                return $strand->capabilities->compile($source, $k->env);
             }
             default {
                 die "Unknown Operation: ".$k->config->{operation};

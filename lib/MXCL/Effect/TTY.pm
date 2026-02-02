@@ -20,7 +20,7 @@ class MXCL::Effect::TTY :isa(MXCL::Effect) {
         $error  //= \*STDERR;
     }
 
-    method handles ($k, $strand, $pid) {
+    method handles ($k, $machine, $pid) {
         given ($k->config->{operation}) {
             when ('print') {
                 $output->print(map $_->pprint, $k->stack->splice(0));

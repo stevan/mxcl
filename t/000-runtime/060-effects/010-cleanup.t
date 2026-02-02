@@ -4,7 +4,7 @@ use Test::More;
 
 use lib 'lib';
 
-use MXCL::Strand;
+use MXCL::Machine;
 use MXCL::Capabilities;
 use MXCL::Effect;
 
@@ -19,7 +19,7 @@ package TestEffect {
         field $cleanup_called :reader = false;
         field $name :param :reader;
 
-        method handles ($k, $strand, $pid) {
+        method handles ($k, $machine, $pid) {
             # Simple test effect - just returns halt
             return undef;
         }
@@ -37,13 +37,13 @@ package TestEffect {
     my $effect1 = TestEffect->new(name => 'effect1');
     my $effect2 = TestEffect->new(name => 'effect2');
 
-    my $strand = MXCL::Strand->new(
+    my $machine = MXCL::Machine->new(
         capabilities => MXCL::Capabilities->new(
             effects => [$effect1, $effect2]
         )
     );
 
-    my @effects = $strand->capabilities->effects->@*;
+    my @effects = $machine->capabilities->effects->@*;
     is(scalar @effects, 2, 'effects() returns all effects');
     is($effects[0]->name, 'effect1', 'first effect is correct');
     is($effects[1]->name, 'effect2', 'second effect is correct');
@@ -54,7 +54,7 @@ package TestEffect {
     my $effect1 = TestEffect->new(name => 'effect1');
     my $effect2 = TestEffect->new(name => 'effect2');
 
-    my $strand = MXCL::Strand->new(
+    my $machine = MXCL::Machine->new(
         capabilities => MXCL::Capabilities->new(
             effects => [$effect1, $effect2]
         )
@@ -63,7 +63,7 @@ package TestEffect {
     ok(!$effect1->cleanup_called, 'effect1 cleanup not called initially');
     ok(!$effect2->cleanup_called, 'effect2 cleanup not called initially');
 
-    $strand->capabilities->cleanup;
+    $machine->capabilities->cleanup;
 
     ok($effect1->cleanup_called, 'effect1 cleanup was called');
     ok($effect2->cleanup_called, 'effect2 cleanup was called');
@@ -73,15 +73,15 @@ package TestEffect {
 {
     my $effect = TestEffect->new(name => 'test');
 
-    my $strand = MXCL::Strand->new(
+    my $machine = MXCL::Machine->new(
         capabilities => MXCL::Capabilities->new(
             effects => [$effect]
         )
     );
 
     # Load and run a simple program
-    $strand->load('(+ 1 2)');
-    $strand->run();
+    $machine->load('(+ 1 2)');
+    $machine->run();
 
     ok($effect->cleanup_called, 'cleanup called after normal run');
 }
@@ -90,17 +90,17 @@ package TestEffect {
 {
     my $effect = TestEffect->new(name => 'test');
 
-    my $strand = MXCL::Strand->new(
+    my $machine = MXCL::Machine->new(
         capabilities => MXCL::Capabilities->new(
             effects => [$effect]
         )
     );
 
     # Load a program that will cause an error
-    $strand->load('(throw "test error")');
+    $machine->load('(throw "test error")');
 
     eval {
-        $strand->run();
+        $machine->run();
     };
 
     ok($@, 'error was thrown');

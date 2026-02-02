@@ -1,346 +1,388 @@
 
 use v5.42;
-use experimental qw[ class ];
+use experimental qw[ class switch try ];
 
-use MXCL::Machine;
-use MXCL::Capabilities;
+use MXCL::Term;
+use MXCL::Term::Kontinue;
+use MXCL::Effect;
 
-use Time::HiRes ();
+class MXCL::Term::Runtime::Exception :isa(MXCL::Term::Exception) {}
 
 class MXCL::Strand {
-    field $capabilities :reader :param = undef;
+    field $program  :param :reader;
+    field $env      :param :reader;
+    field $on_exit  :param :reader;
+    field $on_error :param :reader;
 
-    # Machines ...
-    field %machines; # PID to machine mapping
-    field @ready;    # ready queue
-
-    # Timers ...
-    field $time;     # last checked time
-    field @timers;   # pending timers
-
-    # Watchers
-    field %watchers;
-
-    our $TIMER_SEQ = 0;
-    our $PID_SEQ   = -1;
-    our $INIT_PID  = MXCL::Term::PID->CREATE($PID_SEQ++, undef);
+    field $queue :reader;
+    field $ticks :reader;
 
     ADJUST {
-        $capabilities //= MXCL::Capabilities->new;
+        $ticks = 0;
+        $queue = [
+            $on_exit,
+            MXCL::Term::Kontinue::Context::Enter
+                ->new( env => $env )
+                ->wrap(@$program),
+        ];
     }
 
-    # ...
-
-    # --------------------------------------------------------------------------
-    # Process management, it's fairly simple and probably needs a lot added
-    # to it to make it robust. But this works for now.
-    # --------------------------------------------------------------------------
-
-    method next_pid ($parent = undef) {
-        MXCL::Term::PID->CREATE(
-            ++$PID_SEQ,
-            $parent // $INIT_PID
-        )
+    method return_values (@values) {
+        $queue->[-1]->stack->push( @values )
     }
 
-    # ... initializing seed machine
+    method evaluate_term ($expr, $env) {
+        given ($expr->type) {
+            when ('Sym') {
+                my $value = $env->lookup( $expr );
 
-    method initialize_environment {
-        my $pid = $self->next_pid;
-        my $env = $capabilities->new_environment;
-        $env->define('$PID', $pid);
-        $env->define('$PPID', $INIT_PID);
-        return ($env, $pid);
+                if ( not defined $value ) {
+                    return MXCL::Term::Kontinue::Throw->new(
+                        env       => $env,
+                        exception => MXCL::Term::Runtime::Exception->new(
+                            msg => MXCL::Term::Str->CREATE(
+                                "Could not find ".($expr->ident)." in Environment"
+                            )
+                        )
+                    );
+                }
+
+                return MXCL::Term::Kontinue::Return->new( value => $value, env => $env )
+            }
+            when ('List') {
+                return MXCL::Term::Kontinue::Eval::Cons->new( cons => $expr, env => $env )
+            }
+            default {
+                return MXCL::Term::Kontinue::Return->new( value => $expr, env => $env )
+            }
+        }
     }
 
-    method initialize_machine ($source) {
-        my ($env, $pid) = $self->initialize_environment;
-
-        my $program = $capabilities->compile($source, $env);
-        my $machine = MXCL::Machine->new(
-            program  => $program,
-            env      => $env,
-            on_exit  => MXCL::Term::Kontinue::Host->new(
-                effect => MXCL::Effect::Halt->new,
-                env => $env
-            ),
-            on_error => MXCL::Term::Kontinue::Host->new(
-                effect => MXCL::Effect::Error->new,
-                env => $env
-            ),
-        );
-
-        $machines{ $pid->value } = $machine;
-        push @ready => [ $pid, $machine ];
-
-        return ($env, $pid);
-    }
-
-    # ... forking machines
-
-    method fork_environment ($ppid, $env) {
-        my $pid    = $self->next_pid( $ppid );
-        my $forked = $env->derive(
-            '$PID'  => $pid,
-            '$PPID' => $ppid,
-        );
-        return ($forked, $pid);
-    }
-
-    method fork_machine ($pid, $expr, $env) {
-        my ($forked, $new_pid) = $self->fork_environment( $pid, $env );
-
-        my $machine = MXCL::Machine->new(
-            env      => $forked,
-            program  => [
-                MXCL::Term::Kontinue::Eval::Expr->new(
-                    expr => $expr,
-                    env  => $forked,
-                )
-            ],
-            # ------------------------------------------
-            # HMMMM
-            # ------------------------------------------
-            # These should actually return to the parent
-            # process, and trigger anyone waiting on the
-            # pid. Hmm ... need to ponder this.
-            # ------------------------------------------
-            on_exit  => MXCL::Term::Kontinue::Host->new(
-                effect => MXCL::Effect::Halt->new,
-                env => $forked
-            ),
-            on_error => MXCL::Term::Kontinue::Host->new(
-                effect => MXCL::Effect::Error->new,
-                env => $forked
-            ),
-        );
-
-        $machines{ $new_pid->value } = $machine;
-        push @ready => [ $new_pid, $machine ];
-
-        return ($forked, $new_pid);
-    }
-
-    # --------------------------------------------------------------------------
-    # NOTE: the load->run pattern is kinda ick, it needs
-    # some work, especially since we no longer have just
-    # one machine. But this is all a WIP, so I will let it
-    # shake out as it goes.
-    # --------------------------------------------------------------------------
-
-    method load ($source) {
-        $self->initialize_machine( $source );
+    method prepare (@kont) {
+        push @$queue => @kont;
         $self;
     }
 
-    method run {
-        # Install cleanup signal handlers
-        local $SIG{INT} = sub {
-            $ENV{STRAND_DEBUG} && say "SIGINT received, cleaning up...";
-            $capabilities->cleanup;
-            exit(130);  # Standard exit code for SIGINT
-        };
-        local $SIG{QUIT} = sub {
-            $ENV{STRAND_DEBUG} && say "SIGQUIT received, cleaning up...";
-            $capabilities->cleanup;
-            exit(131);  # Standard exit code for SIGQUIT
-        };
-        local $SIG{TERM} = sub {
-            $ENV{STRAND_DEBUG} && say "SIGTERM received, cleaning up...";
-            $capabilities->cleanup;
-            exit(143);  # Standard exit code for SIGTERM
-        };
+    method resume (@kont) {
+        $self->prepare(@kont)->run_until_host;
+    }
 
-        my @results;
-        my $error;
+    method run_until_host {
+        while (@$queue) {
+            $ticks++;
+            my $k = pop @$queue;
+            if ($ENV{DEBUG}) {
+                warn sprintf "-- TICKS[%03d] %s\n" => $ticks, ('-' x 85);
+                warn "KONT :=> ",$k->pprint,"\n";
+                warn join "\n  " => "QUEUE:", (reverse map $_->pprint, @$queue), "\n";
+            }
+            try {
+                given ($k->type) {
+                    when ('Host') {
+                        return $k
+                    }
+                    when ('Return') {
+                        $self->return_values( $k->value )
+                    }
+                    when ('Mutate') {
+                        my $value = $k->stack->pop();
+                        my $name  = $k->name;
 
-        eval {
-            $ENV{STRAND_DEBUG} && say "BEGIN";
-            while (@ready || @timers) {
-                my ($pid, $m) = @{ shift @ready };
-                $ENV{STRAND_DEBUG} && say "RUN ${pid} START";
-                my $host = $m->run_until_host;
-                $ENV{STRAND_DEBUG} && say "RUN ${pid} GOT ", $host->pprint;
-                if (defined( my $kont = $host->effect->handles( $host, $self, $pid ) )) {
-                    $ENV{STRAND_DEBUG} && say "RUN ${pid} NEXT ", join "\n" => map $_->pprint, @$kont;
-                    push @ready => [ $pid, $m->prepare(@$kont) ];
-                } else {
-                    $ENV{STRAND_DEBUG} && say "RUN ${pid} HALT!";
-                    if ($host->effect isa MXCL::Effect::Halt) {
-                        if (exists $watchers{ $pid->value }) {
-                            my $watchers = delete $watchers{ $pid->value };
-                            foreach my $watcher (@$watchers) {
-                                push @ready => [ $watcher, $machines{ $watcher->value } ];
-                            }
+                        if (!$k->env->update( $k->name, $value )) {
+                            push @$queue => MXCL::Term::Kontinue::Throw->new(
+                                env       => $env,
+                                exception => MXCL::Term::Runtime::Exception->new(
+                                    msg => MXCL::Term::Str->CREATE(
+                                        "Could not find ".($k->name->ident)." in Environment"
+                                    )
+                                )
+                            );
+                        }
+
+                        $self->return_values( $value );
+                    }
+                    when ('Define') {
+                        my $value = $k->stack->pop();
+                        $k->env->define( $k->name, $value );
+                        $self->return_values( $value );
+                    }
+                    when ('Context::Enter') {
+                        # pass values on ...
+                        $self->return_values( $k->stack->splice(0) );
+                        # and define a local `defer` to capture
+                        $k->env->define(
+                            MXCL::Term::Sym->CREATE('defer'),
+                            MXCL::Builtins::lift_applicative('defer', [qw[ action ]], sub ($env, $action) {
+                                $k->leave->defer($action);
+                                return MXCL::Term::Unit->new;
+                            })
+                        );
+                    }
+                    when ('Context::Leave') {
+                        if ($k->has_deferred) {
+                            #say "HEY THERE!!!!!";
+                            #say "GOT ", $k->env->deferred->elements->@*;
+                            push @$queue => (
+                                MXCL::Term::Kontinue::Return->new(
+                                    value => $k->stack->shift,
+                                    env   => $k->env,
+                                )->with_stack(
+                                    $k->stack->splice(0)
+                                ),
+                                reverse map {
+                                    MXCL::Term::Kontinue::Apply::Applicative->new(
+                                        env  => $k->env,
+                                        call => $_,
+                                    )
+                                } $k->deferred->splice(0)
+                            );
+                        }
+                        else {
+                            # just pass values on ...
+                            $self->return_values( $k->stack->splice(0) );
                         }
                     }
-                    push @results => $host;
-                }
+                    when ('IfElse') {
+                        my $condition = $k->stack->pop();
+                        if ($condition->boolify) {
+                            push @$queue =>
+                                # AND short/circuit
+                                refaddr $k->condition == refaddr $k->if_true
+                                    ? MXCL::Term::Kontinue::Return->new( value => $condition, env => $k->env )
+                                    : $self->evaluate_term( $k->if_true, $k->env );
+                        } else {
+                            push @$queue =>
+                                # OR short/circuit
+                                refaddr $k->condition == refaddr $k->if_false
+                                    ? MXCL::Term::Kontinue::Return->new( value => $condition, env => $k->env )
+                                    : $self->evaluate_term( $k->if_false, $k->env );
+                        }
+                    }
+                    when ('DoWhile') {
+                        my $condition = $k->stack->pop();
+                        if ($condition->boolify) {
+                            push @$queue => (
+                                # 3. re-use this continuation for the next loop
+                                $k,
+                                # 2. check the condition again ...
+                                MXCL::Term::Kontinue::Eval::Expr->new(
+                                    env  => $k->env,
+                                    expr => $k->condition
+                                ),
+                                # 1. evaluate the body ...
+                                $self->evaluate_term( $k->body, $k->env ),
+                            );
+                        } else {
+                            # 4. or exit the loop
+                        }
+                    }
+                    when ('Throw') {
+                        my @leave_konts;
+                        while (@$queue) {
+                            if ($queue->[-1] isa MXCL::Term::Kontinue::Context::Leave) {
+                                push @leave_konts => pop @$queue;
+                            }
+                            elsif ($queue->[-1] isa MXCL::Term::Kontinue::Catch) {
+                                if (@leave_konts) {
+                                    push @$queue => $k, map {
+                                        MXCL::Term::Kontinue::Catch->new(
+                                            env     => $_->env,
+                                            handler => MXCL::Builtins::lift_applicative('catch-leave-context',
+                                                [qw[ exception ]], sub ($env, $exception) {
+                                                return $k->exception->chain( $exception );
+                                            })
+                                        ),
+                                        $_
+                                    } reverse @leave_konts;
+                                } else {
+                                    $self->return_values( $k->exception );
+                                }
+                                break;
+                            } else {
+                                pop @$queue;
+                            }
+                        }
 
-                # don't wait if we have work to do
-                unless (@ready) {
-                    $ENV{STRAND_DEBUG} && say "...NO PENDING WORK, CHECK WAIT!";
-                    my $wait_duration = $self->should_wait;
-                    if ($wait_duration > 0) {
-                        $ENV{STRAND_DEBUG} && say "[TIMER] Waiting ${wait_duration}s for next timer";
-                        $self->wait($wait_duration);
-                        $ENV{STRAND_DEBUG} && say "[TIMER] done waiting"
-                    } else {
-                        $ENV{STRAND_DEBUG} && say "[TIMER] to short to wait ... "
+                        # bubble up to the HOST if no catch is found
+                        if (scalar @$queue == 0) {
+                            $on_error->stack->push( $k->exception );
+                            return $on_error
+                        }
+                    }
+                    when ('Catch') {
+                        my $results = $k->stack->pop();
+                        if ($results isa MXCL::Term::Runtime::Exception) {
+                            push @$queue => MXCL::Term::Kontinue::Apply::Applicative->new(
+                                env  => $k->env,
+                                call => $k->handler,
+                            )->with_stack(
+                                $results
+                            );
+                        } else {
+                            push @$queue => MXCL::Term::Kontinue::Return->new(
+                                env   => $k->env,
+                                value => $results,
+                            );
+                        }
+                    }
+                    when ('Eval::Expr') {
+                        push @$queue => $self->evaluate_term( $k->expr, $k->env );
+                    }
+                    when ('Eval::TOS') {
+                        my $to_eval = $k->stack->pop();
+                        push @$queue => $self->evaluate_term( $to_eval, $k->env )
+                    }
+                    when ('Eval::Cons') {
+                        my $list  = $k->cons;
+                        push @$queue => (
+                            MXCL::Term::Kontinue::Apply::Expr->new(
+                                env  => $k->env,
+                                args => $list->rest
+                            ),
+                            $self->evaluate_term( $list->first, $k->env )
+                        );
+                    }
+                    when ('Eval::Cons::Rest') {
+                        my $list = $k->rest;
+                        my $rest = $list->rest;
+                        unless ($rest isa MXCL::Term::Nil) {
+                            push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                                env  => $k->env,
+                                rest => $rest
+                            );
+                        }
+
+                        $self->return_values( $k->stack->splice(0) );
+                        push @$queue => $self->evaluate_term( $list->first, $k->env );
+                    }
+                    when ('Apply::Expr') {
+                        my $call = $k->stack->pop();
+
+                        if ($call->is_operative) {
+                            push @$queue => MXCL::Term::Kontinue::Apply::Operative->new(
+                                env  => $k->env,
+                                call => $call,
+                                args => $k->args,
+                            );
+                        }
+                        elsif ($call->is_applicative) {
+                            push @$queue => MXCL::Term::Kontinue::Apply::Applicative->new(
+                                env  => $k->env,
+                                call => $call,
+                            );
+
+                            unless ($k->args isa MXCL::Term::Nil) {
+                                push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                                    env  => $k->env,
+                                    rest => $k->args
+                                );
+                            }
+                        }
+                        else {
+                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Expr");
+                        }
+                    }
+                    when ('Apply::Operative') {
+                        my $call = $k->call;
+                        if ($call isa MXCL::Term::Operative::Native) {
+                            push @$queue => $call->body->( $k->env, $k->args->uncons )->@*;
+                        }
+                        elsif ($call isa MXCL::Term::FExpr) {
+                            MXCL::Term::Runtime::Exception->throw('TODO - user-defined FExpr');
+                        }
+                        elsif ($call isa MXCL::Term::Opaque) {
+                            if ($k->args isa MXCL::Term::Nil) {
+                                push @$queue => (
+                                    MXCL::Term::Kontinue::Return->new(
+                                        value => $call,
+                                        env   => $k->env,
+                                    )
+                                );
+                            }
+                            else {
+                                my $to_call = $k->args->first;
+                                my $method  = $call->resolve( $to_call );
+
+                                MXCL::Term::Runtime::Exception->throw(
+                                    "Unable to resolve method ".$to_call->pprint." in ".$call->pprint
+                                ) unless defined $method;
+
+                                if ($method->is_applicative) {
+                                    push @$queue => (
+                                        MXCL::Term::Kontinue::Apply::Applicative->new(
+                                            call => $method,
+                                            env  => $k->env,
+                                        )->with_stack($call)
+                                    );
+
+                                    unless ($k->args->rest isa MXCL::Term::Nil) {
+                                        push @$queue => MXCL::Term::Kontinue::Eval::Cons::Rest->new(
+                                            env  => $k->env,
+                                            rest => $k->args->rest
+                                        );
+                                    }
+                                } else {
+                                    push @$queue => (
+                                        MXCL::Term::Kontinue::Return->new(
+                                            value => $method,
+                                            env   => $k->env,
+                                        )
+                                    );
+                                }
+                            }
+                        }
+                        else {
+                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative -> ".$call->pprint);
+                        }
+                    }
+                    when ('Apply::Applicative') {
+                        my $call = $k->call;
+                        if ($call isa MXCL::Term::Applicative::Native) {
+                            push @$queue => MXCL::Term::Kontinue::Return->new(
+                                env   => $k->env,
+                                value => $call->body->( $k->env, $k->stack->splice(0) ),
+                            );
+                        }
+                        elsif ($call isa MXCL::Term::Lambda) {
+                            my $lambda = $k->call;
+
+                            my @params = $lambda->params->uncons;
+                            my @args   = $k->stack->splice(0);
+
+                            my %bindings;
+                            for (my $i = 0; $i < scalar @params; $i++) {
+                                $bindings{ $params[$i]->ident } = $args[$i];
+                            }
+
+                            my $local = $lambda->env->derive(%bindings);
+                            push @$queue => MXCL::Term::Kontinue::Eval::Expr->new(
+                                env  => $local,
+                                expr => $lambda->body
+                            );
+                        }
+                        else {
+                            MXCL::Term::Runtime::Exception->throw("WTF, what is $call in Apply::Applicative");
+                        }
+                    }
+                    default {
+                        MXCL::Term::Runtime::Exception->throw("UNKNOWN CONTINUATION $k");
                     }
                 }
-
-                # process timers
-                my @to_run = $self->get_pending_timers;
-                $ENV{STRAND_DEBUG} && say ">> GOT TIMERS TO RUN: ", scalar @to_run;
-                foreach my $timer (@to_run) {
-                    #say join ', ' => @$timer;
-                    my $pid = $timer->[ 2 ];
-                    my $_m  = $machines{ $pid->value };
-                    push @ready => [ $pid, $_m ];
+            } catch ($e) {
+                unless ($e isa MXCL::Term::Runtime::Exception) {
+                    $e = MXCL::Term::Runtime::Exception->new(
+                        msg => MXCL::Term::Str->CREATE( "$e" )
+                    );
                 }
 
-                $ENV{STRAND_DEBUG} && say ">> GOT WORK TO BE DONE: ", scalar @ready;
-            }
-        };
-
-        $error = $@;
-
-        # Always cleanup effects, even on error
-        $ENV{STRAND_DEBUG} && say "Cleaning up effects...";
-        $capabilities->cleanup;
-
-        # Re-throw error after cleanup
-        die $error if $error;
-
-        # FIXME: this is totally wrong
-        # but too many bits to change
-        # for now, so meh, I will get
-        # a round to it.
-        return $results[-1];
-    }
-
-    method schedule_watcher ( $to_watch, $to_notify ) {
-        push @{ $watchers{ $to_watch->value } //= [] } => $to_notify;
-    }
-
-    # --------------------------------------------------------------------------
-    # FIXME:
-    # I copied the below scheduler functions from an older project, and they
-    # pretty much work, but they really should be a seperate module, and not
-    # in the core Strand namespace.
-    # --------------------------------------------------------------------------
-
-    use constant TIMER_PRECISION_DECIMAL => 0.001;
-    use constant TIMER_PRECISION_INT     => 1000;
-
-    method now {
-        state $MONOTONIC = Time::HiRes::CLOCK_MONOTONIC();
-        $time = Time::HiRes::clock_gettime($MONOTONIC);
-        return $time;
-    }
-
-    method wait ($duration) {
-        Time::HiRes::sleep($duration) if $duration > 0;
-    }
-
-    method _calculate_end_time ($delay_ms) {
-        my $now      = $self->now;
-        my $end_time = $now + ($delay_ms / 1000.0);  # Convert ms to seconds
-        # Round to millisecond precision
-        $end_time = int($end_time * TIMER_PRECISION_INT) * TIMER_PRECISION_DECIMAL;
-        return $end_time;
-    }
-
-    method schedule_alarm ($pid, $ms) {
-        my $timer_id = ++$TIMER_SEQ;
-        my $end_time = $self->_calculate_end_time($ms < 1 ? 1 : $ms);
-
-        my $timer = [$end_time, $timer_id, $pid, 0];  # [end_time, id, pid, cancelled]
-
-        if (@timers == 0) {
-            # Fast path: first timer
-            push @timers, $timer;
-        }
-        elsif ($timers[-1][0] == $end_time) {
-            # Same time as last timer - append
-            push @timers, $timer;
-        }
-        elsif ($timers[-1][0] < $end_time) {
-            # Fast path: append to end (common case)
-            push @timers, $timer;
-        }
-        elsif ($timers[-1][0] > $end_time) {
-            # Need to sort - insert in correct position
-            @timers = sort { $a->[0] <=> $b->[0] } @timers, $timer;
-        }
-
-        return $timer_id;
-    }
-
-    # Cancel scheduled callback
-    method cancel_scheduled ($timer_id) {
-        # Mark as cancelled (lazy deletion)
-        for my $timer (@timers) {
-            if ($timer->[1] == $timer_id) {
-                $timer->[-1] = 1;  # Set cancelled flag
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-    # Get next timer, cleaning up cancelled ones
-    method _get_next_timer {
-        while (my $next_timer = $timers[0]) {
-            # If we have timers
-            if (@{$next_timer}) {
-                # Check if all are cancelled
-                my @active = grep { !$_->[-1] } @timers;
-                if (@active == 0) {
-                    # All cancelled, clear and continue
-                    shift @timers;
-                    next;
-                }
-                else {
-                    last;
-                }
-            }
-            else {
-                shift @timers;
+                push @$queue => MXCL::Term::Kontinue::Throw->new(
+                    env       => $k->env,
+                    exception => $e
+                );
             }
         }
 
-        return $timers[0];
+        MXCL::Term::Runtime::Exception->throw("This should never happen, we should always return via HOST");
     }
 
-    # Calculate how long to wait for next timer
-    method should_wait {
-        my $wait = 0;
-
-        if (my $next_timer = $self->_get_next_timer) {
-            $wait = $next_timer->[0] - $time;
-        }
-
-        # Do not wait for negative values
-        if ($wait < TIMER_PRECISION_DECIMAL) {
-            $wait = 0;
-        }
-
-        return $wait;
-    }
-
-    method get_pending_timers {
-        return unless @timers;
-
-        my $now = $self->now;
-
-        my @timers_to_run;
-        while (@timers && $timers[0][0] <= $now) {
-            push @timers_to_run, shift @timers;
-        }
-
-        return grep { !$_->[-1] } @timers_to_run;
-    }
 }
-

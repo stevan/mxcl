@@ -2,7 +2,7 @@
 
 use v5.42;
 use Test::More;
-use MXCL::Strand;
+use MXCL::Machine;
 
 my $source = q[
     (require "Test.mxcl")
@@ -79,7 +79,7 @@ my $source = q[
     ($t done)
 ];
 
-my $kont = MXCL::Strand->new->load($source)->run;
+my $kont = MXCL::Machine->new->load($source)->run;
 unless ($kont->effect isa MXCL::Effect::Halt) {
     die "EXPECTED HALT, GOT! ", $kont->stringify;
 }

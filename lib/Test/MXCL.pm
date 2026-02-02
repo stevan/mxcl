@@ -4,7 +4,7 @@ use v5.42;
 use Exporter 'import';
 
 use IO::Scalar;
-use MXCL::Strand;
+use MXCL::Machine;
 use MXCL::Effect;
 use MXCL::Effect::TTY;
 use MXCL::Effect::REPL;
@@ -17,7 +17,7 @@ our @EXPORT = @EXPORT_OK;
 
 # Evaluate MXCL source and return the result Term (or undef on error)
 sub eval_mxcl ($source) {
-    my $kont = MXCL::Strand->new->load($source)->run;
+    my $kont = MXCL::Machine->new->load($source)->run;
     return undef unless $kont->effect isa MXCL::Effect::Halt;
     my ($result) = $kont->stack->splice(0);
     return $result;
@@ -25,14 +25,14 @@ sub eval_mxcl ($source) {
 
 # Evaluate and return true if it completed successfully
 sub eval_ok ($source) {
-    my $kont = MXCL::Strand->new->load($source)->run;
+    my $kont = MXCL::Machine->new->load($source)->run;
     return $kont->effect isa MXCL::Effect::Halt;
 }
 
 # Evaluate and return true if it threw an error
 sub eval_throws ($source) {
     try {
-        my $kont = MXCL::Strand->new->load($source)->run;
+        my $kont = MXCL::Machine->new->load($source)->run;
         return $kont->effect isa MXCL::Effect::Error;
     } catch ($e) {
         return !!$e;
@@ -54,8 +54,8 @@ sub eval_with_output ($source) {
         ]
     );
 
-    my $strand = MXCL::Strand->new(capabilities => $caps);
-    my $kont = $strand->load($source)->run;
+    my $machine = MXCL::Machine->new(capabilities => $caps);
+    my $kont = $machine->load($source)->run;
 
     return {
         kont   => $kont,

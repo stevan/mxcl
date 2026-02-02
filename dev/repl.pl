@@ -5,7 +5,7 @@ use experimental qw[ class switch ];
 
 use Data::Dumper qw[ Dumper ];
 
-use MXCL::Strand;
+use MXCL::Machine;
 
 my $source = q|
 
@@ -20,7 +20,7 @@ my $source = q|
 
 |;
 
-my $kont = MXCL::Strand->new->load($source)->run;
+my $kont = MXCL::Machine->new->load($source)->run;
 
 if ($kont->effect isa 'MXCL::Effect::Halt') {
     my ($result) = $kont->stack->splice(0);

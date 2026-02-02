@@ -9,7 +9,7 @@ use MXCL::Effect;
 
 class MXCL::Effect::Require :isa(MXCL::Effect) {
 
-    method handles ($k, $strand, $pid) {
+    method handles ($k, $machine, $pid) {
         given ($k->config->{operation}) {
             when ('require') {
                 my $file   = $k->stack->pop();
@@ -18,7 +18,7 @@ class MXCL::Effect::Require :isa(MXCL::Effect) {
                 $fh->open($path, '<') or die "Cannot open file($path) because $!";
                 my $source = join '' => $fh->getlines;
                 # compile it ...
-                return $strand->capabilities->compile($source, $k->env);
+                return $machine->capabilities->compile($source, $k->env);
             }
             default {
                 die "Unknown Operation: ".$k->config->{operation};

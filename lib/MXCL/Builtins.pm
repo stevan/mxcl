@@ -4,7 +4,7 @@ use v5.42;
 
 use MXCL::Term;
 use MXCL::Term::Kontinue;
-use MXCL::Machine;
+use MXCL::Strand;
 
 our $BIFS;
 

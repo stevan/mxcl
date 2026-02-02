@@ -18,7 +18,7 @@ class MXCL::Effect::REPL :isa(MXCL::Effect) {
         $error  = \*STDERR,
     }
 
-    method handles ($k, $strand, $pid) {
+    method handles ($k, $machine, $pid) {
         given ($k->config->{operation}) {
             when ('repl') {
                 # print the old result if we have it
@@ -32,7 +32,7 @@ class MXCL::Effect::REPL :isa(MXCL::Effect) {
                 my $source = $input->getline;
 
                 # compile it ...
-                my $kont = $strand->compiler->compile($source, $k->env);
+                my $kont = $machine->capabilities->compile($source, $k->env);
 
                 # return the same continuation
                 # TODO - add history to this continuation

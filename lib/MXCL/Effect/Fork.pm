@@ -9,11 +9,11 @@ use MXCL::Effect;
 
 class MXCL::Effect::Fork :isa(MXCL::Effect) {
 
-    method handles ($k, $strand, $pid) {
+    method handles ($k, $machine, $pid) {
         given ($k->config->{operation}) {
             when ('fork') {
                 my $expr = $k->stack->pop();
-                my ($forked, $new_pid)  = $strand->fork_machine( $pid, $expr, $k->env );
+                my ($forked, $new_pid)  = $machine->fork_strand( $pid, $expr, $k->env );
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $forked,
@@ -23,19 +23,19 @@ class MXCL::Effect::Fork :isa(MXCL::Effect) {
             }
             when ('wait') {
                 my $wait_on = $k->stack->pop();
-                $strand->schedule_watcher( $wait_on, $pid );
+                $machine->schedule_watcher( $wait_on, $pid );
                 return undef;
             }
             when ('sleep') {
                 my $ms = $k->stack->pop();
-                $strand->schedule_alarm( $k->env->lookup('$PID'), $ms->value );
+                $machine->schedule_alarm( $k->env->lookup('$PID'), $ms->value );
                 return undef;
             }
             when ('time') {
                 return +[
                     MXCL::Term::Kontinue::Return->new(
                         env   => $k->env,
-                        value => MXCL::Term::Num->CREATE( $strand->now )
+                        value => MXCL::Term::Num->CREATE( $machine->now )
                     )
                 ]
             }

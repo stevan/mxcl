@@ -6,7 +6,7 @@ use MXCL::Term;
 use MXCL::Term::Kontinue;
 
 class MXCL::Effect {
-    # handles ($host-kontinue, $strand)
+    # handles ($host-kontinue, $machine, $pid)
     #   - returning undef tells the machine to halt
     #   - otherwise return an array of Kontinue objects to resume with
     #
@@ -29,7 +29,7 @@ class MXCL::Effect::Halt :isa(MXCL::Effect) {
 }
 
 class MXCL::Effect::Error :isa(MXCL::Effect) {
-    method handles  ($k, $strand, $pid) {
+    method handles  ($k, $machine, $pid) {
         die sprintf "%s ERROR! %s\n",
             $pid->pprint,
             (join ', ' => map { $_->pprint } $k->stack->splice(0))

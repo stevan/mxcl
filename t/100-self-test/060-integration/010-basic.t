@@ -7,7 +7,7 @@ use Test::More;
 use Data::Dumper qw[ Dumper ];
 use Carp         qw[ confess ];
 
-use MXCL::Strand;
+use MXCL::Machine;
 
 # NOTE - these should all be converted in proper tests,
 # only the $source one runs for now, but the others
@@ -128,7 +128,7 @@ my $source = q[
 
 ];
 
-my $kont = MXCL::Strand->new->load($source)->run;
+my $kont = MXCL::Machine->new->load($source)->run;
 isa_ok($kont, 'MXCL::Term::Kontinue::Host');
 
 isa_ok($kont->effect, 'MXCL::Effect::Halt', '... expected normal exit');
